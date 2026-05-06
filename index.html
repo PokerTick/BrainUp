@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BrainUp – Brain Training Games</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ── Home Screen ───────────────────────────────────────── -->
+  <div id="screen-home" class="screen active">
+    <header>
+      <h1>🧠 BrainUp</h1>
+      <p class="tagline">Train your brain. One game at a time.</p>
+    </header>
+
+    <div class="game-grid">
+      <button class="game-card" data-game="memory">
+        <span class="game-icon">🃏</span>
+        <h2>Memory Match</h2>
+        <p>Flip cards and match identical pairs as fast as you can.</p>
+      </button>
+
+      <button class="game-card" data-game="math">
+        <span class="game-icon">➕</span>
+        <h2>Math Sprint</h2>
+        <p>Answer arithmetic questions before the timer runs out.</p>
+      </button>
+
+      <button class="game-card" data-game="reaction">
+        <span class="game-icon">⚡</span>
+        <h2>Reaction Time</h2>
+        <p>Tap the target the moment it appears. How fast are you?</p>
+      </button>
+    </div>
+
+    <section id="high-scores">
+      <h3>Best Scores</h3>
+      <table>
+        <thead>
+          <tr><th>Game</th><th>Score</th></tr>
+        </thead>
+        <tbody id="score-table-body"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <!-- ── Memory Match ──────────────────────────────────────── -->
+  <div id="screen-memory" class="screen">
+    <div class="game-header">
+      <button class="back-btn">← Back</button>
+      <h2>Memory Match</h2>
+      <div class="stats">
+        <span>Moves: <strong id="memory-moves">0</strong></span>
+        <span>Time: <strong id="memory-time">0s</strong></span>
+      </div>
+    </div>
+    <div id="memory-board"></div>
+    <div id="memory-result" class="result-banner hidden">
+      <p id="memory-result-text"></p>
+      <button id="memory-play-again">Play Again</button>
+    </div>
+  </div>
+
+  <!-- ── Math Sprint ───────────────────────────────────────── -->
+  <div id="screen-math" class="screen">
+    <div class="game-header">
+      <button class="back-btn">← Back</button>
+      <h2>Math Sprint</h2>
+      <div class="stats">
+        <span>Score: <strong id="math-score">0</strong></span>
+        <span>Time: <strong id="math-timer">30s</strong></span>
+      </div>
+    </div>
+    <div id="math-content">
+      <p id="math-question" class="big-question"></p>
+      <div id="math-options" class="option-grid"></div>
+    </div>
+    <div id="math-result" class="result-banner hidden">
+      <p id="math-result-text"></p>
+      <button id="math-play-again">Play Again</button>
+    </div>
+  </div>
+
+  <!-- ── Reaction Time ─────────────────────────────────────── -->
+  <div id="screen-reaction" class="screen">
+    <div class="game-header">
+      <button class="back-btn">← Back</button>
+      <h2>Reaction Time</h2>
+      <div class="stats">
+        <span>Round: <strong id="reaction-round">1</strong>/5</span>
+        <span>Avg: <strong id="reaction-avg">—</strong></span>
+      </div>
+    </div>
+    <div id="reaction-arena">
+      <div id="reaction-target" class="hidden"></div>
+      <p id="reaction-instruction">Press <strong>Start</strong> to begin.</p>
+      <button id="reaction-start-btn">Start</button>
+    </div>
+    <div id="reaction-result" class="result-banner hidden">
+      <p id="reaction-result-text"></p>
+      <button id="reaction-play-again">Play Again</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
