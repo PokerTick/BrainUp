@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../ui/bottomnavigation.dart';
 
 class Homepages extends StatefulWidget {
   const Homepages({super.key});
@@ -8,29 +9,11 @@ class Homepages extends StatefulWidget {
 }
 
 class _HomepagesState extends State<Homepages> {
-  int currentpages = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: currentpages,
-        onTap: (value) => 
-        setState(() {
-          currentpages = value;
-        }),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: "home",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: "home",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: "home",
-          ),
-      ]));
+      bottomNavigationBar: AppBottomNavigationBar(),
+    );
   }
 }
