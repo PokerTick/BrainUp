@@ -248,7 +248,6 @@ class _NavItem extends StatelessWidget {
 
 class _FloatingActiveIcon extends StatelessWidget {
   const _FloatingActiveIcon({
-    super.key,
     required this.assetPath,
     required this.size,
   });
