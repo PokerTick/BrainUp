@@ -2,14 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class AppBottomNavigationBar extends StatefulWidget {
-  const AppBottomNavigationBar({super.key});
+  const AppBottomNavigationBar({
+    super.key,
+    required this.currentIndex,
+    required this.onTabChanged,
+  });
+
+  final int currentIndex;
+  final ValueChanged<int> onTabChanged;
 
   @override
   State<AppBottomNavigationBar> createState() => _AppBottomNavigationBarState();
 }
 
 class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
-  int currentIndex = 0;
 
   static const _items = [
     _NavItemData(label: 'Home', assetPath: 'lib/assets/Home.svg'),
@@ -32,7 +38,7 @@ class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
             constraints.maxWidth - (horizontalPadding * 2);
         final itemWidth = availableWidth / _items.length;
         final notchCenterX = horizontalPadding +
-            (itemWidth * currentIndex) +
+            (itemWidth * widget.currentIndex) +
             (itemWidth / 2);
 
         return SizedBox(
@@ -60,13 +66,12 @@ class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
                 height: barHeight,
                 child: Row(
                   children: List.generate(_items.length, (index) {
-                    final isActive = index == currentIndex;
+                    final isActive = index == widget.currentIndex;
                     return Expanded(
                       child: _NavItem(
                         data: _items[index],
                         isActive: isActive,
-                        onTap: () =>
-                            setState(() => currentIndex = index),
+                        onTap: () => widget.onTabChanged(index),
                       ),
                     );
                   }),
@@ -79,7 +84,7 @@ class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
                 left: notchCenterX - (floatingSize / 2),
                 top: 0,
                 child: _FloatingActiveIcon(
-                  assetPath: _items[currentIndex].assetPath,
+                  assetPath: _items[widget.currentIndex].assetPath,
                   size: floatingSize,
                 ),
               ),
@@ -173,7 +178,7 @@ class _BottomNavPainter extends CustomPainter {
     // Draw shadow
     canvas.drawShadow(
       path,
-      Colors.black.withOpacity(0.15),
+      Colors.black.withValues(alpha: 0.15),
       8.0,
       false,
     );
@@ -257,7 +262,6 @@ class _FloatingActiveIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const borderColor = Color(0xFF5E4AB3);
     return Container(
       width: size,
       height: size,
@@ -270,7 +274,7 @@ class _FloatingActiveIcon extends StatelessWidget {
         // ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.10),
+            color: Colors.black.withValues(alpha: 0.10),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
