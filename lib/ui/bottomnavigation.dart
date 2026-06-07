@@ -39,12 +39,10 @@ class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
         const barHeight = 70.0;
         const floatingSize = 56.0;
 
-        final availableWidth =
-            constraints.maxWidth - (horizontalPadding * 2);
+        final availableWidth = constraints.maxWidth - (horizontalPadding * 2);
         final itemWidth = availableWidth / _items.length;
-        final notchCenterX = horizontalPadding +
-            (itemWidth * currentIndex) +
-            (itemWidth / 2);
+        final notchCenterX =
+            horizontalPadding + (itemWidth * currentIndex) + (itemWidth / 2);
 
         return SizedBox(
           height: barHeight + (floatingSize / 2) + 4 + bottomPadding,
@@ -77,7 +75,8 @@ class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
                         data: _items[index],
                         isActive: isActive,
                         onTap: () {
-                          if (currentIndex == index) return; // Already on this tab
+                          if (currentIndex == index)
+                            return; // Already on this tab
 
                           setState(() => currentIndex = index);
 
@@ -88,18 +87,24 @@ class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
                             if (index == 0) {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => const Homepages()),
+                                MaterialPageRoute(
+                                  builder: (context) => const Homepages(),
+                                ),
                               );
                             } else if (index == 1) {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => const SearchPage()),
+                                MaterialPageRoute(
+                                  builder: (context) => const SearchPage(),
+                                ),
                               );
-                            } 
-                            else if (index == 2) {
+                            } else if (index == 2) {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => const Coursenotpurchase()),
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const Coursenotpurchase(),
+                                ),
                               );
                             }
                             // You can add routing for Search (index 1) and Profile (index 3) here
@@ -188,16 +193,22 @@ class _BottomNavPainter extends CustomPainter {
 
     // Smooth cubic bezier curve going DOWN for the notch
     path.cubicTo(
-      notchCenterX - bumpRadius, barTop,
-      notchCenterX - bumpRadius + 8, barTop + bumpHeight, // Changed - to +
-      notchCenterX, barTop + bumpHeight, // Changed - to +
+      notchCenterX - bumpRadius,
+      barTop,
+      notchCenterX - bumpRadius + 8,
+      barTop + bumpHeight, // Changed - to +
+      notchCenterX,
+      barTop + bumpHeight, // Changed - to +
     );
 
     // Mirror curve going back UP
     path.cubicTo(
-      notchCenterX + bumpRadius - 8, barTop + bumpHeight, // Changed - to +
-      notchCenterX + bumpRadius, barTop,
-      notchCenterX + bumpRadius + 12, barTop,
+      notchCenterX + bumpRadius - 8,
+      barTop + bumpHeight, // Changed - to +
+      notchCenterX + bumpRadius,
+      barTop,
+      notchCenterX + bumpRadius + 12,
+      barTop,
     );
 
     // Continue to right edge
@@ -209,12 +220,7 @@ class _BottomNavPainter extends CustomPainter {
     path.close();
 
     // Draw shadow
-    canvas.drawShadow(
-      path,
-      Colors.black.withValues(alpha: 0.15),
-      8.0,
-      false,
-    );
+    canvas.drawShadow(path, Colors.black.withValues(alpha: 0.15), 8.0, false);
 
     // Fill white
     final paint = Paint()
@@ -261,11 +267,7 @@ class _NavItem extends StatelessWidget {
           // Icon — invisible when active (the floating bubble shows it instead)
           Opacity(
             opacity: isActive ? 0.0 : 0.3,
-            child: SvgPicture.asset(
-              data.assetPath,
-              width: 24,
-              height: 24,
-            ),
+            child: SvgPicture.asset(data.assetPath, width: 24, height: 24),
           ),
           const SizedBox(height: 6),
           Text(
@@ -285,10 +287,7 @@ class _NavItem extends StatelessWidget {
 }
 
 class _FloatingActiveIcon extends StatelessWidget {
-  const _FloatingActiveIcon({
-    required this.assetPath,
-    required this.size,
-  });
+  const _FloatingActiveIcon({required this.assetPath, required this.size});
 
   final String assetPath;
   final double size;
@@ -309,13 +308,7 @@ class _FloatingActiveIcon extends StatelessWidget {
           ),
         ],
       ),
-      child: Center(
-        child: SvgPicture.asset(
-          assetPath,
-          width: 26,
-          height: 26,
-        ),
-      ),
+      child: Center(child: SvgPicture.asset(assetPath, width: 26, height: 26)),
     );
   }
 }
