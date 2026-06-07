@@ -4,6 +4,9 @@ import '../../ui/bottomnavigation.dart';
 import '../Login&Signup/login.dart';
 import 'wishlist_page.dart';
 import 'account_settings_page.dart';
+import 'trainer_signup_page.dart';
+import 'purchase_history_page.dart';
+import 'voucher_list_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -187,7 +190,12 @@ class _ProfilePageState extends State<ProfilePage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const TrainerSignUpPage()),
+                  );
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: const Color(0xFF6B58E6),
@@ -236,7 +244,12 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: _QuickActionItem(
                   icon: Icons.receipt_long_outlined,
                   label: 'Purchase\nHistory',
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PurchaseHistoryPage()),
+                    );
+                  },
                 ),
               ),
             ],
@@ -285,7 +298,10 @@ class _ProfilePageState extends State<ProfilePage> {
             icon: Icons.card_giftcard_outlined,
             title: 'Voucher List',
             onTap: () {
-              // Add navigation to voucher list page here later
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const VoucherListPage()),
+              );
             },
           ),
           _SettingsTile(
