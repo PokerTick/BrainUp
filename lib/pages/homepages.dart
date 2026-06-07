@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../ui/bottomnavigation.dart';
+import 'my_courses_page.dart';
 import '../ui/home_header.dart';
 import '../ui/category_section.dart';
 import '../ui/course_section.dart';
