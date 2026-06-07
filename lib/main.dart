@@ -1,3 +1,4 @@
+import 'package:brainup/ui/main_shell.dart';
 import 'package:brainup/pages/course/CourseNotPurchase.dart';
 import 'package:brainup/pages/course/CoursePurchase.dart';
 import 'package:brainup/pages/homepages.dart';
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       home: const Coursepurchase(),
     );
