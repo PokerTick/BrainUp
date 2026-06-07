@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -117,8 +118,13 @@ class ApiService {
   // Google Sign-In
   static Future<Map<String, dynamic>> googleSignIn() async {
     try {
-      // Initialize the Google Sign-In instance (new in 7.x.x)
-      await GoogleSignIn.instance.initialize();
+      // Initialize the Google Sign-In instance with the required Client IDs
+      await GoogleSignIn.instance.initialize(
+        clientId: kIsWeb
+            ? '270829782979-gt5m92no3pqckk9np3ciqnmu901k9bl8.apps.googleusercontent.com'
+            : null,
+        serverClientId: '270829782979-gt5m92no3pqckk9np3ciqnmu901k9bl8.apps.googleusercontent.com',
+      );
 
       // Trigger the native Google Sign-In flow
       final GoogleSignInAccount account = await GoogleSignIn.instance.authenticate();
