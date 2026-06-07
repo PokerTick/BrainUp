@@ -215,65 +215,53 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildQuickActionsGrid() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _QuickActionItem(
-                    icon: Icons.favorite_border,
-                    label: 'Wishlist',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const WishlistPage()),
-                      );
-                    },
-                  ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _QuickActionItem(
+                  icon: Icons.favorite_border,
+                  label: 'Wishlist',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const WishlistPage()),
+                    );
+                  },
                 ),
-                Expanded(
-                  child: _QuickActionItem(
-                    icon: Icons.receipt_long_outlined,
-                    label: 'Purchase\nHistory',
-                    onTap: () {},
-                  ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _QuickActionItem(
+                  icon: Icons.receipt_long_outlined,
+                  label: 'Purchase\nHistory',
+                  onTap: () {},
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _QuickActionItem(
-                    icon: Icons.history,
-                    label: 'Watch\nHistory',
-                    onTap: () {},
-                  ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _QuickActionItem(
+                  icon: Icons.history,
+                  label: 'Watch\nHistory',
+                  onTap: () {},
                 ),
-                Expanded(
-                  child: _QuickActionItem(
-                    icon: Icons.menu_book_outlined,
-                    label: 'My Courses',
-                    onTap: () {},
-                  ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _QuickActionItem(
+                  icon: Icons.menu_book_outlined,
+                  label: 'My Courses',
+                  onTap: () {},
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -293,6 +281,13 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           const SizedBox(height: 12),
+          _SettingsTile(
+            icon: Icons.card_giftcard_outlined,
+            title: 'Voucher List',
+            onTap: () {
+              // Add navigation to voucher list page here later
+            },
+          ),
           _SettingsTile(
             icon: Icons.settings_outlined,
             title: 'Account Settings',
@@ -367,28 +362,44 @@ class _QuickActionItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0EDFF),
-              borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
             ),
-            child: Icon(icon, color: const Color(0xFF6B58E6), size: 24),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF2B2B2F),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF6B58E6), width: 1),
+              ),
+              child: Icon(icon, color: const Color(0xFF6B58E6), size: 22),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Text(
+              label,
+              textAlign: TextAlign.left,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF2B2B2F),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
