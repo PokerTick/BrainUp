@@ -1,25 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../pages/homepages.dart';
-import '../pages/course/CourseNotPurchase.dart';
+import '../pages/search_page.dart';
 
-class AppBottomNavigationBar extends StatefulWidget {
-  final int initialIndex;
-
-  const AppBottomNavigationBar({super.key, this.initialIndex = 0});
+/// Shell widget that owns the bottom navigation and the page stack.
+/// Replace the usage of [Homepages] as root with [MainShell].
+class MainShell extends StatefulWidget {
+  const MainShell({super.key});
 
   @override
-  State<AppBottomNavigationBar> createState() => _AppBottomNavigationBarState();
+  State<MainShell> createState() => _MainShellState();
 }
 
-class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
-  late int currentIndex;
-
-  @override
-  void initState() {
-    super.initState();
-    currentIndex = widget.initialIndex;
-  }
+class _MainShellState extends State<MainShell> {
+  int _currentIndex = 0;
 
   static const _items = [
     _NavItemData(label: 'Home', assetPath: 'lib/assets/Home.svg'),
@@ -28,35 +22,114 @@ class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
     _NavItemData(label: 'Profile', assetPath: 'lib/assets/Profile.svg'),
   ];
 
+  // Pages keyed so their state is preserved when switching tabs
+  final _pages = const [
+    _HomeTab(),
+    SearchPage(),
+    _PlaceholderTab(label: 'My Courses'),
+    _PlaceholderTab(label: 'Profile'),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
+      ),
+      bottomNavigationBar: _BottomNavBar(
+        currentIndex: _currentIndex,
+        items: _items,
+        onTap: (i) => setState(() => _currentIndex = i),
+        bottomPadding: bottomPadding,
+      ),
+    );
+  }
+}
+
+// ─── Home tab wraps the original Homepages content ───────────────────────
+class _HomeTab extends StatelessWidget {
+  const _HomeTab();
+
+  @override
+  Widget build(BuildContext context) {
+    // Reuse the homepage body directly (without its own Scaffold so there's no
+    // double bottom bar).
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color.fromARGB(255, 190, 132, 251),
+            Color.fromARGB(255, 255, 255, 255),
+          ],
+          stops: [0.05, 0.40],
+        ),
+      ),
+      child: const SafeArea(
+        child: Center(child: Text('Home', style: TextStyle(fontSize: 24))),
+      ),
+    );
+  }
+}
+
+// ─── Generic placeholder for tabs not yet implemented ────────────────────
+class _PlaceholderTab extends StatelessWidget {
+  const _PlaceholderTab({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(label,
+          style: const TextStyle(fontSize: 24, color: Color(0xFF5E4AB3))),
+    );
+  }
+}
+
+// ─── Bottom Navigation Bar ────────────────────────────────────────────────
+class _BottomNavBar extends StatelessWidget {
+  const _BottomNavBar({
+    required this.currentIndex,
+    required this.items,
+    required this.onTap,
+    required this.bottomPadding,
+  });
+
+  final int currentIndex;
+  final List<_NavItemData> items;
+  final ValueChanged<int> onTap;
+  final double bottomPadding;
+
+  @override
+  Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         const horizontalPadding = 12.0;
         const barHeight = 70.0;
         const floatingSize = 56.0;
 
-        final availableWidth =
-            constraints.maxWidth - (horizontalPadding * 2);
-        final itemWidth = availableWidth / _items.length;
-        final notchCenterX = horizontalPadding +
-            (itemWidth * widget.currentIndex) +
-            (itemWidth / 2);
+        final availableWidth = constraints.maxWidth - (horizontalPadding * 2);
+        final itemWidth = availableWidth / items.length;
+        final notchCenterX =
+            horizontalPadding + (itemWidth * currentIndex) + (itemWidth / 2);
 
         return SizedBox(
           height: barHeight + (floatingSize / 2) + 4 + bottomPadding,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              // White bar background with upward bump
+              // Animated white bar background
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
                 height: barHeight + (floatingSize / 2) + 4 + bottomPadding,
-                child: NavBarAnimatedBackground(
+                child: _AnimatedBarBackground(
                   notchCenterX: notchCenterX,
                   barHeight: barHeight,
                   floatingSize: floatingSize,
@@ -69,48 +142,26 @@ class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
                 bottom: bottomPadding,
                 height: barHeight,
                 child: Row(
-                  children: List.generate(_items.length, (index) {
-                    final isActive = index == widget.currentIndex;
+                  children: List.generate(items.length, (index) {
+                    final isActive = index == currentIndex;
                     return Expanded(
                       child: _NavItem(
-                        data: _items[index],
+                        data: items[index],
                         isActive: isActive,
-                        onTap: () {
-                          if (currentIndex == index) return; // Already on this tab
-
-                          setState(() => currentIndex = index);
-
-                          // Wait for the bump animation before navigating
-                          Future.delayed(const Duration(milliseconds: 300), () {
-                            if (!context.mounted) return;
-
-                            if (index == 0) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const Homepages()),
-                              );
-                            } else if (index == 2) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const Coursenotpurchase()),
-                              );
-                            }
-                            // You can add routing for Search (index 1) and Profile (index 3) here
-                          });
-                        },
+                        onTap: () => onTap(index),
                       ),
                     );
                   }),
                 ),
               ),
-              // Floating bubble circle for active icon
+              // Floating bubble
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeOutCubic,
                 left: notchCenterX - (floatingSize / 2),
                 top: 0,
                 child: _FloatingActiveIcon(
-                  assetPath: _items[widget.currentIndex].assetPath,
+                  assetPath: items[currentIndex].assetPath,
                   size: floatingSize,
                 ),
               ),
@@ -122,10 +173,9 @@ class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
   }
 }
 
-/// Animated background painter that draws the white bar with a smooth upward bump
-class NavBarAnimatedBackground extends StatelessWidget {
-  const NavBarAnimatedBackground({
-    super.key,
+// ─── Animated bar background (ported from original bottomnavigation.dart) ─
+class _AnimatedBarBackground extends StatelessWidget {
+  const _AnimatedBarBackground({
     required this.notchCenterX,
     required this.barHeight,
     required this.floatingSize,
@@ -172,44 +222,25 @@ class _BottomNavPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final path = Path();
-
-    // Start from top-left of the bar area
     path.moveTo(0, barTop);
-
-    // Line to just before the bump/notch
     path.lineTo(notchCenterX - bumpRadius - 12, barTop);
-
-    // Smooth cubic bezier curve going DOWN for the notch
     path.cubicTo(
       notchCenterX - bumpRadius, barTop,
-      notchCenterX - bumpRadius + 8, barTop + bumpHeight, // Changed - to +
-      notchCenterX, barTop + bumpHeight, // Changed - to +
+      notchCenterX - bumpRadius + 8, barTop + bumpHeight,
+      notchCenterX, barTop + bumpHeight,
     );
-
-    // Mirror curve going back UP
     path.cubicTo(
-      notchCenterX + bumpRadius - 8, barTop + bumpHeight, // Changed - to +
+      notchCenterX + bumpRadius - 8, barTop + bumpHeight,
       notchCenterX + bumpRadius, barTop,
       notchCenterX + bumpRadius + 12, barTop,
     );
-
-    // Continue to right edge
     path.lineTo(size.width, barTop);
-
-    // Close the bottom
     path.lineTo(size.width, size.height);
     path.lineTo(0, size.height);
     path.close();
 
-    // Draw shadow
-    canvas.drawShadow(
-      path,
-      Colors.black.withValues(alpha: 0.15),
-      8.0,
-      false,
-    );
+    canvas.drawShadow(path, Colors.black.withValues(alpha: 0.15), 8.0, false);
 
-    // Fill white
     final paint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
@@ -217,24 +248,19 @@ class _BottomNavPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _BottomNavPainter oldDelegate) {
-    return oldDelegate.notchCenterX != notchCenterX;
-  }
+  bool shouldRepaint(covariant _BottomNavPainter oldDelegate) =>
+      oldDelegate.notchCenterX != notchCenterX;
 }
 
 class _NavItemData {
   const _NavItemData({required this.label, required this.assetPath});
-
   final String label;
   final String assetPath;
 }
 
 class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.data,
-    required this.isActive,
-    required this.onTap,
-  });
+  const _NavItem(
+      {required this.data, required this.isActive, required this.onTap});
 
   final _NavItemData data;
   final bool isActive;
@@ -251,14 +277,9 @@ class _NavItem extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Icon — invisible when active (the floating bubble shows it instead)
           Opacity(
             opacity: isActive ? 0.0 : 0.3,
-            child: SvgPicture.asset(
-              data.assetPath,
-              width: 24,
-              height: 24,
-            ),
+            child: SvgPicture.asset(data.assetPath, width: 24, height: 24),
           ),
           const SizedBox(height: 6),
           Text(
@@ -278,10 +299,7 @@ class _NavItem extends StatelessWidget {
 }
 
 class _FloatingActiveIcon extends StatelessWidget {
-  const _FloatingActiveIcon({
-    required this.assetPath,
-    required this.size,
-  });
+  const _FloatingActiveIcon({required this.assetPath, required this.size});
 
   final String assetPath;
   final double size;
@@ -303,11 +321,7 @@ class _FloatingActiveIcon extends StatelessWidget {
         ],
       ),
       child: Center(
-        child: SvgPicture.asset(
-          assetPath,
-          width: 26,
-          height: 26,
-        ),
+        child: SvgPicture.asset(assetPath, width: 26, height: 26),
       ),
     );
   }

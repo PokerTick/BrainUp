@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../ui/bottomnavigation.dart';
 import 'my_courses_page.dart';
+import '../ui/home_header.dart';
+import '../ui/category_section.dart';
+import '../ui/course_section.dart';
+import '../ui/spinwheel_dialog.dart';
 
 class Homepages extends StatefulWidget {
   const Homepages({super.key});
@@ -10,38 +14,6 @@ class Homepages extends StatefulWidget {
 }
 
 class _HomepagesState extends State<Homepages> {
-  int _currentIndex = 0;
-
-  // Halaman untuk tiap tab
-  static const _pages = [
-    _HomePage(),
-    _SearchPage(),
-    MyCoursesPage(),
-    _ProfilePage(),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      extendBody: true,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
-      bottomNavigationBar: AppBottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTabChanged: (index) => setState(() => _currentIndex = index),
-      ),
-    );
-  }
-}
-
-// ─── Placeholder pages (ganti nanti) ─────────────────────────────────────────
-
-class _HomePage extends StatelessWidget {
-  const _HomePage();
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -56,44 +28,36 @@ class _HomePage extends StatelessWidget {
           stops: [0.05, 0.40],
         ),
       ),
-      child: const Center(
-        child: Text(
-          'Home',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              HomeHeader(),
+              CategorySection(),
+              CourseSection(),
+              SizedBox(height: 80),
+            ],
+          ),
         ),
-      ),
-    );
-  }
-}
-
-class _SearchPage extends StatelessWidget {
-  const _SearchPage();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFFF5F0FF),
-      body: Center(
-        child: Text(
-          'Search',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfilePage extends StatelessWidget {
-  const _ProfilePage();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFFF5F0FF),
-      body: Center(
-        child: Text(
-          'Profile',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        bottomNavigationBar: const AppBottomNavigationBar(initialIndex: 0),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (context) => const SpinwheelDialog(),
+            );
+          },
+          backgroundColor: const Color(0xFF6B58E6),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Icon(
+            Icons.sports_esports, // Game controller icon
+            color: Colors.white,
+            size: 32,
+          ),
         ),
       ),
     );

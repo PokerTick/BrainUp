@@ -45,7 +45,7 @@ class _LoginState extends State<Login> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 20,
                       spreadRadius: 5,
                       offset: const Offset(0, 10),
@@ -66,7 +66,7 @@ class _LoginState extends State<Login> {
                     const SizedBox(height: 16),
                     const Center(
                       child: Text(
-                        "Let's Register First",
+                        "Login",
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -167,7 +167,7 @@ class _LoginState extends State<Login> {
                           ),
                         ),
                         child: const Text(
-                          'Register',
+                          'Login',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,
