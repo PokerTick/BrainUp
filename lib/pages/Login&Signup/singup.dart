@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'login.dart';
+import '../../services/api_service.dart';
+import '../homepages.dart';
+import '../trainer_dashboard.dart';
 
 class Singup extends StatefulWidget {
   const Singup({super.key});
@@ -10,6 +13,98 @@ class Singup extends StatefulWidget {
 }
 
 class _SingupState extends State<Singup> {
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _handleRegister() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
+
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final result = await ApiService.register(name, email, password);
+
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    if (result['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registration successful! Please login.')),
+      );
+      
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const Login()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['message'])),
+      );
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+
+    final result = await ApiService.googleSignIn();
+
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    if (result['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Google sign-in successful!')),
+      );
+
+      final role = result['role'] as String;
+      if (role.toUpperCase() == 'TRAINER') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const TrainerDashboard()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Homepages()),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['message'])),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -77,11 +172,35 @@ class _SingupState extends State<Singup> {
                     ),
                     const SizedBox(height: 24),
                     const Text(
+                      'Full Name',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _nameController,
+                      decoration: InputDecoration(
+                        hintText: 'Enter Full Name',
+                        hintStyle: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontSize: 14,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
                       'Email Address',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     TextField(
+                      controller: _emailController,
                       decoration: InputDecoration(
                         hintText: 'Enter Email Address',
                         hintStyle: TextStyle(
@@ -104,6 +223,7 @@ class _SingupState extends State<Singup> {
                     ),
                     const SizedBox(height: 8),
                     TextField(
+                      controller: _passwordController,
                       obscureText: true,
                       decoration: InputDecoration(
                         hintText: 'Enter Password',
@@ -127,6 +247,7 @@ class _SingupState extends State<Singup> {
                     ),
                     const SizedBox(height: 8),
                     TextField(
+                      controller: _confirmPasswordController,
                       obscureText: true,
                       decoration: InputDecoration(
                         hintText: 'Retype Password',
@@ -169,7 +290,7 @@ class _SingupState extends State<Singup> {
                       width: double.infinity,
                       height: 48,
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: _isLoading ? null : _handleRegister,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(
                             0xFF4A44F2,
@@ -178,14 +299,23 @@ class _SingupState extends State<Singup> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text(
-                          'Register',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Register',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -216,7 +346,7 @@ class _SingupState extends State<Singup> {
                       child: Padding(
                         padding: const EdgeInsets.all(2.0),
                         child: TextButton(
-                          onPressed: () {},
+                          onPressed: _isLoading ? null : _handleGoogleSignIn,
                           style: TextButton.styleFrom(
                             backgroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
