@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:brainup/ui/bottomnavigation.dart';
+import 'package:brainup/services/api_service.dart';
 
 // ─── Data Model ──────────────────────────────────────────────────────────────
 
@@ -39,42 +40,7 @@ class EnrolledCourse {
   }
 }
 
-// ─── Dummy / mock data (replace with real API call) ──────────────────────────
 
-final _mockCourses = [
-  const EnrolledCourse(
-    id: 1,
-    title: 'Generative AI for Beginners',
-    progress: 75,
-    completed: false,
-    trainerName: 'Dr. Smith',
-    categoryName: 'AI',
-  ),
-  const EnrolledCourse(
-    id: 2,
-    title: 'How to train ur monkey',
-    progress: 75,
-    completed: false,
-    trainerName: 'Prof. Budi',
-    categoryName: 'Animals',
-  ),
-  const EnrolledCourse(
-    id: 3,
-    title: 'Grabbing the axolotl',
-    progress: 50,
-    completed: false,
-    trainerName: 'Jane Doe',
-    categoryName: 'Biology',
-  ),
-  const EnrolledCourse(
-    id: 4,
-    title: 'Docker Basics',
-    progress: 25,
-    completed: false,
-    trainerName: 'DevOps Guy',
-    categoryName: 'DevOps',
-  ),
-];
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
@@ -105,21 +71,15 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
   }
 
   Future<void> _loadCourses() async {
-    // TODO: Replace with real API call:
-    // final token = await AuthService.getToken();
-    // final response = await http.get(Uri.parse('$baseUrl/my-courses'),
-    //   headers: {'Authorization': 'Bearer $token'});
-    // final List data = jsonDecode(response.body)['data'];
-    // _allCourses = data.map((e) => EnrolledCourse.fromJson(e)).toList();
-
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 600));
-
-    setState(() {
-      _allCourses = _mockCourses;
-      _filteredCourses = _mockCourses;
-      _isLoading = false;
-    });
+    final raw = await ApiService.getMyCourses();
+    final courses = raw.map((e) => EnrolledCourse.fromJson(e)).toList();
+    if (mounted) {
+      setState(() {
+        _allCourses = courses;
+        _filteredCourses = courses;
+        _isLoading = false;
+      });
+    }
   }
 
   void _onSearchChanged() {
@@ -321,7 +281,7 @@ class _CourseCard extends StatelessWidget {
                           child: Image.network(
                             course.thumbnailUrl!,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, _) =>
+                            errorBuilder: (_, _, _) =>
                                 const _ThumbnailPlaceholder(),
                           ),
                         )

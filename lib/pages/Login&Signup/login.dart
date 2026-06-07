@@ -1,4 +1,6 @@
 import 'package:brainup/pages/Login&Signup/singup.dart';
+import 'package:brainup/pages/homepages.dart';
+import 'package:brainup/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import '../../services/api_service.dart';
@@ -15,83 +17,10 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _rememberMe = false;
   bool _isLoading = false;
-
-  Future<void> _handleLogin() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter email and password')),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    final result = await ApiService.login(email, password);
-
-    if (!mounted) return;
-
-    setState(() => _isLoading = false);
-
-    if (result['success'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login successful!')),
-      );
-      
-      final role = result['role'] as String;
-      if (role.toUpperCase() == 'TRAINER') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const TrainerDashboard()),
-        );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const Homepages()),
-        );
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message'])),
-      );
-    }
-  }
-
-  Future<void> _handleGoogleSignIn() async {
-    setState(() => _isLoading = true);
-
-    final result = await ApiService.googleSignIn();
-
-    if (!mounted) return;
-
-    setState(() => _isLoading = false);
-
-    if (result['success'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Google sign-in successful!')),
-      );
-
-      final role = result['role'] as String;
-      if (role.toUpperCase() == 'TRAINER') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const TrainerDashboard()),
-        );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const Homepages()),
-        );
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message'])),
-      );
-    }
-  }
+  bool _obscurePassword = true;
+  String? _errorMsg;
 
   @override
   void dispose() {
@@ -100,12 +29,53 @@ class _LoginState extends State<Login> {
     super.dispose();
   }
 
+  Future<void> _login() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => _errorMsg = 'Please fill in all fields.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMsg = null;
+    });
+
+    final result = await ApiService.login(email: email, password: password);
+
+    if (!mounted) return;
+
+    if (result != null) {
+      // Save tokens
+      await ApiService.saveTokens(
+        accessToken: result['accessToken'] as String? ?? '',
+        refreshToken: result['refreshToken'] as String? ?? '',
+      );
+
+      // Navigate to home, clearing the entire back stack
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const Homepages()),
+        (route) => false,
+      );
+    } else {
+      setState(() {
+        _isLoading = false;
+        _errorMsg = 'Invalid email or password. Please try again.';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // This fixes the black background!
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
+          // Purple SVG background (top half)
           ClipRRect(
             borderRadius: const BorderRadius.only(
               bottomLeft: Radius.circular(40),
@@ -113,21 +83,18 @@ class _LoginState extends State<Login> {
             ),
             child: SizedBox(
               width: double.infinity,
-              height:
-                  MediaQuery.of(context).size.height * 0.5, // 50% screen height
+              height: MediaQuery.of(context).size.height * 0.5,
               child: SvgPicture.asset(
                 'lib/assets/BackgroundLogSign.svg',
-                fit: BoxFit.fill, // Force the SVG to completely fill the space
+                fit: BoxFit.fill,
               ),
             ),
           ),
+          // Login form card
           Center(
             child: SingleChildScrollView(
               child: Container(
-                margin: const EdgeInsets.only(
-                  top: 100,
-                  bottom: 40,
-                ), // Pushes the box down to overlap the background beautifully
+                margin: const EdgeInsets.only(top: 100, bottom: 40),
                 width: MediaQuery.of(context).size.width * 0.85,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -143,10 +110,10 @@ class _LoginState extends State<Login> {
                   ],
                 ),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min, // Wrap children tightly
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start, // Align to left by default
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Logo
                     Center(
                       child: Image.asset(
                         'lib/assets/Logo.png',
@@ -156,7 +123,7 @@ class _LoginState extends State<Login> {
                     const SizedBox(height: 16),
                     const Center(
                       child: Text(
-                        "Login",
+                        'Login',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -165,6 +132,32 @@ class _LoginState extends State<Login> {
                       ),
                     ),
                     const SizedBox(height: 24),
+
+                    // Error message
+                    if (_errorMsg != null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Text(
+                          _errorMsg!,
+                          style: TextStyle(
+                            color: Colors.red.shade700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Email field
                     const Text(
                       'Email Address',
                       style: TextStyle(fontWeight: FontWeight.bold),
@@ -172,6 +165,8 @@ class _LoginState extends State<Login> {
                     const SizedBox(height: 8),
                     TextField(
                       controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
                       decoration: InputDecoration(
                         hintText: 'Enter Email Address',
                         hintStyle: TextStyle(
@@ -185,9 +180,18 @@ class _LoginState extends State<Login> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF4A44F2),
+                            width: 1.5,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
+
+                    // Password field
                     const Text(
                       'Password',
                       style: TextStyle(fontWeight: FontWeight.bold),
@@ -195,7 +199,9 @@ class _LoginState extends State<Login> {
                     const SizedBox(height: 8),
                     TextField(
                       controller: _passwordController,
-                      obscureText: true,
+                      obscureText: _obscurePassword,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _login(),
                       decoration: InputDecoration(
                         hintText: 'Enter Password',
                         hintStyle: TextStyle(
@@ -209,26 +215,50 @@ class _LoginState extends State<Login> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF4A44F2),
+                            width: 1.5,
+                          ),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: Colors.grey.shade500,
+                            size: 20,
+                          ),
+                          onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
+
+                    // Remember me + Forgot password
                     Row(
                       children: [
                         SizedBox(
                           height: 24,
                           width: 24,
                           child: Checkbox(
-                            value: false,
-                            onChanged: (value) {},
+                            value: _rememberMe,
+                            onChanged: (v) =>
+                                setState(() => _rememberMe = v ?? false),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(4),
                             ),
+                            activeColor: const Color(0xFF4A44F2),
                           ),
                         ),
                         const SizedBox(width: 8),
                         const Text(
                           'Remember me',
-                          style: TextStyle(color: Colors.grey, fontSize: 14),
+                          style:
+                              TextStyle(color: Colors.grey, fontSize: 14),
                         ),
                         const Spacer(),
                         GestureDetector(
@@ -236,7 +266,7 @@ class _LoginState extends State<Login> {
                           child: const Text(
                             'Forgot Password?',
                             style: TextStyle(
-                              color: Color.fromARGB(255, 116, 116, 116),
+                              color: Color(0xFF4A44F2),
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                             ),
@@ -245,26 +275,28 @@ class _LoginState extends State<Login> {
                       ],
                     ),
                     const SizedBox(height: 24),
+
+                    // Login button
                     SizedBox(
                       width: double.infinity,
                       height: 48,
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _handleLogin,
+                        onPressed: _isLoading ? null : _login,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(
-                            0xFF4A44F2,
-                          ), // Purpleish Blue color from image
+                          backgroundColor: const Color(0xFF4A44F2),
+                          disabledBackgroundColor:
+                              const Color(0xFF4A44F2).withValues(alpha: 0.6),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         child: _isLoading
                             ? const SizedBox(
-                                height: 20,
-                                width: 20,
+                                width: 22,
+                                height: 22,
                                 child: CircularProgressIndicator(
                                   color: Colors.white,
-                                  strokeWidth: 2,
+                                  strokeWidth: 2.5,
                                 ),
                               )
                             : const Text(
@@ -278,6 +310,8 @@ class _LoginState extends State<Login> {
                       ),
                     ),
                     const SizedBox(height: 16),
+
+                    // Divider
                     const Center(
                       child: Text(
                         'Or',
@@ -288,16 +322,18 @@ class _LoginState extends State<Login> {
                       ),
                     ),
                     const SizedBox(height: 16),
+
+                    // Google login button (placeholder — OAuth flow needed)
                     Container(
                       width: double.infinity,
                       height: 48,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [
-                            Color(0xFF4285F4), // Blue
-                            Color(0xFFEA4335), // Red
-                            Color(0xFFFBBC05), // Yellow
-                            Color(0xFF34A853), // Green
+                            Color(0xFF4285F4),
+                            Color(0xFFEA4335),
+                            Color(0xFFFBBC05),
+                            Color(0xFF34A853),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(12),
@@ -318,10 +354,10 @@ class _LoginState extends State<Login> {
                               Image.asset('lib/assets/GoogleLogo.png'),
                               const SizedBox(width: 5),
                               const Text(
-                                'Google',
+                                'Continue with Google',
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 16,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -331,20 +367,23 @@ class _LoginState extends State<Login> {
                       ),
                     ),
                     const SizedBox(height: 24),
+
+                    // Register link
                     Center(
                       child: GestureDetector(
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const Singup(),
+                              builder: (_) => const Singup(),
                             ),
                           );
                         },
                         child: RichText(
                           text: const TextSpan(
-                            text: "Don't have an account?",
-                            style: TextStyle(color: Colors.grey, fontSize: 14),
+                            text: "Don't have an account? ",
+                            style:
+                                TextStyle(color: Colors.grey, fontSize: 14),
                             children: [
                               TextSpan(
                                 text: 'Register',
