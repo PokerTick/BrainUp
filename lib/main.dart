@@ -85,6 +85,7 @@ class _SplashRouterState extends State<_SplashRouter> {
           ),
         ),
       ),
+      home: const Login(),
     );
   }
 }
