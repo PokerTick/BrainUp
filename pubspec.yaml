@@ -37,6 +37,7 @@ dependencies:
   flutter_svg: ^2.3.0
   http: ^1.6.0
   shared_preferences: ^2.5.3
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +69,15 @@ flutter:
     - lib/assets/BackgroundLogSign.svg
     - lib/assets/Logo.png
     - lib/assets/GoogleLogo.png
+    - lib/assets/avatar.png
+    - lib/assets/category_tech.png
+    - lib/assets/category_math.png
+    - lib/assets/category_science.png
+    - lib/assets/course_1.png
+    - lib/assets/course_2.png
+    - lib/assets/spinwheel.png
+    - lib/assets/Coding.png
+    - lib/assets/Takeshi.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
