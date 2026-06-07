@@ -40,6 +40,35 @@ class HomeHeader extends StatelessWidget {
                     ],
                   ),
                 ),
+                // EXP Index
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.local_fire_department, // Or star, depending on what EXP represents
+                        color: Color(0xFFFFD700), // Gold
+                        size: 16,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '1,240 XP',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
                 // Avatar
                 Container(
                   width: 56,
