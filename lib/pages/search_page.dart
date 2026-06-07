@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../services/api_service.dart';
 import '../../services/recent_search_service.dart';
+import '../ui/bottomnavigation.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -176,6 +177,7 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bgColor,
+      bottomNavigationBar: AppBottomNavigationBar(initialIndex: 1),
       body: SafeArea(
         child: Column(
           children: [

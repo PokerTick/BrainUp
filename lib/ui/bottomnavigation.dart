@@ -1,3 +1,4 @@
+import 'package:brainup/pages/search_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../pages/homepages.dart';
@@ -89,7 +90,13 @@ class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
                                 context,
                                 MaterialPageRoute(builder: (context) => const Homepages()),
                               );
-                            } else if (index == 2) {
+                            } else if (index == 1) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const SearchPage()),
+                              );
+                            } 
+                            else if (index == 2) {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(builder: (context) => const Coursenotpurchase()),

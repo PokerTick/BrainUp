@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "D:/Code files/Flutter/brainup/brainup/linux"
+	"cmake.sourceDirectory": "D:/Code files/Flutter/brainup/brainup/linux",
+	"java.configuration.updateBuildConfiguration": "interactive"
 }
