@@ -76,108 +76,32 @@ class _SearchPageState extends State<SearchPage> {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return;
     _focusNode.unfocus();
-    setState(() {
-      _isSearching = true;
-    });
+    setState(() => _isSearching = true);
 
     await RecentSearchService.addSearch(trimmed);
     await _loadRecentSearches();
 
-    // TODO: TEMP DATA - Replace with actual API call later
-    /*
+    // Hit real API
     final result = await ApiService.searchCourses(
       trimmed,
+      limit: 20,
       categoryId: _selectedCategoryId,
       isFree: _isFree,
       minPrice: (_isFree == true || _minPrice == 0) ? null : _minPrice,
-      maxPrice: (_isFree == true || _maxPrice >= _kMaxPrice) ? null : _maxPrice,
+      maxPrice:
+          (_isFree == true || _maxPrice >= _kMaxPrice) ? null : _maxPrice,
     );
-    */
 
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 600));
-
-    final List<Map<String, dynamic>> courses = [
-      {
-        'id': 1,
-        'title': 'React Fundamental',
-        'thumbnail': 'https://picsum.photos/seed/react/200/200',
-        'isFree': true,
-        'price': 0,
-        'difficulty': 'beginner',
-        'category': {'name': 'Web Development'},
-        'trainer': {'name': 'Trainer G'},
-        'averageRating': 4.7,
-        '_count': {'enrollments': 1200},
-      },
-      {
-        'id': 2,
-        'title': 'Advanced Flutter',
-        'thumbnail': 'https://picsum.photos/seed/flutter/200/200',
-        'isFree': false,
-        'price': 150000,
-        'difficulty': 'advanced',
-        'category': {'name': 'Mobile Development'},
-        'trainer': {'name': 'Trainer H'},
-        'averageRating': 4.9,
-        '_count': {'enrollments': 850},
-      },
-      {
-        'id': 3,
-        'title': 'Python for Data Science',
-        'thumbnail': 'https://picsum.photos/seed/python/200/200',
-        'isFree': false,
-        'price': 200000,
-        'difficulty': 'pro',
-        'category': {'name': 'Data Science'},
-        'trainer': {'name': 'Trainer J'},
-        'averageRating': 4.8,
-        '_count': {'enrollments': 340},
-      },
-      {
-        'id': 4,
-        'title': 'UI/UX Design Basics',
-        'thumbnail': 'https://picsum.photos/seed/design/200/200',
-        'isFree': true,
-        'price': 0,
-        'difficulty': 'beginner',
-        'category': {'name': 'Design'},
-        'trainer': {'name': 'Trainer K'},
-        'averageRating': 4.6,
-        '_count': {'enrollments': 2100},
-      },
-      {
-        'id': 5,
-        'title': 'Machine Learning',
-        'thumbnail': 'https://picsum.photos/seed/ml/200/200',
-        'isFree': false,
-        'price': 300000,
-        'difficulty': 'advanced',
-        'category': {'name': 'Data Science'},
-        'trainer': {'name': 'Trainer L'},
-        'averageRating': 4.9,
-        '_count': {'enrollments': 520},
-      },
-      {
-        'id': 6,
-        'title': 'Intro to HTML & CSS',
-        'thumbnail': 'https://picsum.photos/seed/html/200/200',
-        'isFree': true,
-        'price': 0,
-        'difficulty': 'beginner',
-        'category': {'name': 'Web Development'},
-        'trainer': {'name': 'Trainer M'},
-        'averageRating': 4.5,
-        '_count': {'enrollments': 3100},
-      },
-    ];
+    // The response shape: { courses: [...], total, page, ... }
+    // or sometimes the list is directly in data
+    List<Map<String, dynamic>> courses = [];
+    final inner = result['courses'] ?? result['data'] ?? result;
+    if (inner is List) {
+      courses = inner.cast<Map<String, dynamic>>();
+    }
 
     if (mounted) {
-      setState(() {
-        _isSearching = false;
-      });
-
-      // Navigate to the results page
+      setState(() => _isSearching = false);
       if (!context.mounted) return;
       Navigator.push(
         context,

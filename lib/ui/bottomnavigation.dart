@@ -3,7 +3,6 @@ import 'package:brainup/pages/search_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../pages/homepages.dart';
-import '../pages/course/CourseNotPurchase.dart';
 
 class AppBottomNavigationBar extends StatefulWidget {
   final int initialIndex;

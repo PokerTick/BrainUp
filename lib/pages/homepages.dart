@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import '../main.dart' show routeObserver;
 import '../ui/bottomnavigation.dart';
-import 'my_courses_page.dart';
 import '../ui/home_header.dart';
 import '../ui/category_section.dart';
 import '../ui/course_section.dart';
@@ -13,7 +13,50 @@ class Homepages extends StatefulWidget {
   State<Homepages> createState() => _HomepagesState();
 }
 
-class _HomepagesState extends State<Homepages> {
+class _HomepagesState extends State<Homepages> with RouteAware {
+  // Changing this key forces all child sections to rebuild & re-fetch
+  int _refreshKey = 0;
+  bool _isRefreshing = false;
+
+  // ─── RouteAware lifecycle ─────────────────────────────────────────────────
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe to route changes (safe to call multiple times)
+    final route = ModalRoute.of(context);
+    if (route != null) {
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  /// Called when the user pops a child route and comes back to this page
+  @override
+  void didPopNext() {
+    _refresh();
+  }
+
+  // ─── Manual refresh (pull-to-refresh) ────────────────────────────────────
+
+  Future<void> _refresh() async {
+    if (_isRefreshing) return;
+    setState(() {
+      _isRefreshing = true;
+      _refreshKey++;
+    });
+    // A brief pause so RefreshIndicator animation feels natural
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (mounted) setState(() => _isRefreshing = false);
+  }
+
+  // ─── Build ────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -30,15 +73,24 @@ class _HomepagesState extends State<Homepages> {
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: const SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              HomeHeader(),
-              CategorySection(),
-              CourseSection(),
-              SizedBox(height: 80),
-            ],
+        body: RefreshIndicator(
+          onRefresh: _refresh,
+          color: const Color(0xFF6B58E6),
+          backgroundColor: Colors.white,
+          displacement: 60,
+          child: SingleChildScrollView(
+            // Always scrollable so pull-to-refresh works even when content is short
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Keyed so they fully rebuild (and re-fetch) when _refreshKey changes
+                HomeHeader(key: ValueKey('header_$_refreshKey')),
+                CategorySection(key: ValueKey('cat_$_refreshKey')),
+                CourseSection(key: ValueKey('course_$_refreshKey')),
+                const SizedBox(height: 80),
+              ],
+            ),
           ),
         ),
         bottomNavigationBar: const AppBottomNavigationBar(initialIndex: 0),
@@ -46,7 +98,7 @@ class _HomepagesState extends State<Homepages> {
           onPressed: () {
             showDialog(
               context: context,
-              builder: (context) => const SpinwheelDialog(),
+              builder: (_) => const SpinwheelDialog(),
             );
           },
           backgroundColor: const Color(0xFF6B58E6),
@@ -54,7 +106,7 @@ class _HomepagesState extends State<Homepages> {
             borderRadius: BorderRadius.circular(16),
           ),
           child: const Icon(
-            Icons.sports_esports, // Game controller icon
+            Icons.sports_esports,
             color: Colors.white,
             size: 32,
           ),
