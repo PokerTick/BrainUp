@@ -1,3 +1,5 @@
+import 'package:brainup/pages/course/CourseNotPurchase.dart';
+import 'package:brainup/pages/course/CoursePurchase.dart';
 import 'package:brainup/pages/homepages.dart';
 import 'package:flutter/material.dart';
 
@@ -16,7 +18,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const Homepages(),
+      home: const Coursepurchase(),
     );
   }
 }

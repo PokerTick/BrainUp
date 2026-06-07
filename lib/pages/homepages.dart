@@ -40,7 +40,7 @@ class _HomepagesState extends State<Homepages> {
             ],
           ),
         ),
-        bottomNavigationBar: const AppBottomNavigationBar(),
+        bottomNavigationBar: const AppBottomNavigationBar(initialIndex: 0),
         floatingActionButton: FloatingActionButton(
           onPressed: () {
             showDialog(

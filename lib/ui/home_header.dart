@@ -60,7 +60,7 @@ class HomeHeader extends StatelessWidget {
                   ),
                   child: ClipOval(
                     child: Image.asset(
-                      'lib/assets/avatar.png',
+                      'lib/assets/Takeshi.png',
                       fit: BoxFit.cover,
                     ),
                   ),
