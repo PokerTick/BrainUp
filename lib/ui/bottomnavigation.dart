@@ -43,7 +43,7 @@ class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
             constraints.maxWidth - (horizontalPadding * 2);
         final itemWidth = availableWidth / _items.length;
         final notchCenterX = horizontalPadding +
-            (itemWidth * widget.currentIndex) +
+            (itemWidth * currentIndex) +
             (itemWidth / 2);
 
         return SizedBox(
@@ -71,7 +71,7 @@ class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
                 height: barHeight,
                 child: Row(
                   children: List.generate(_items.length, (index) {
-                    final isActive = index == widget.currentIndex;
+                    final isActive = index == currentIndex;
                     return Expanded(
                       child: _NavItem(
                         data: _items[index],
@@ -117,7 +117,7 @@ class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
                 left: notchCenterX - (floatingSize / 2),
                 top: 0,
                 child: _FloatingActiveIcon(
-                  assetPath: _items[widget.currentIndex].assetPath,
+                  assetPath: _items[currentIndex].assetPath,
                   size: floatingSize,
                 ),
               ),
