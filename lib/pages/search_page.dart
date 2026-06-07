@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../services/api_service.dart';
 import '../../services/recent_search_service.dart';
 import '../ui/bottomnavigation.dart';
+import 'search_results_page.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -27,11 +28,6 @@ class _SearchPageState extends State<SearchPage> {
   List<Map<String, dynamic>> _categories = [];
   bool _categoriesLoading = true;
   bool _isSearching = false;
-
-  // Search results
-  List<Map<String, dynamic>> _searchResults = [];
-  bool _hasSearched = false;
-  int _totalResults = 0;
 
   // Active filters
   int? _selectedCategoryId;
@@ -82,12 +78,13 @@ class _SearchPageState extends State<SearchPage> {
     _focusNode.unfocus();
     setState(() {
       _isSearching = true;
-      _hasSearched = false;
     });
 
     await RecentSearchService.addSearch(trimmed);
     await _loadRecentSearches();
 
+    // TODO: TEMP DATA - Replace with actual API call later
+    /*
     final result = await ApiService.searchCourses(
       trimmed,
       categoryId: _selectedCategoryId,
@@ -95,17 +92,102 @@ class _SearchPageState extends State<SearchPage> {
       minPrice: (_isFree == true || _minPrice == 0) ? null : _minPrice,
       maxPrice: (_isFree == true || _maxPrice >= _kMaxPrice) ? null : _maxPrice,
     );
+    */
+
+    // Simulate network delay
+    await Future.delayed(const Duration(milliseconds: 600));
+
+    final List<Map<String, dynamic>> courses = [
+      {
+        'id': 1,
+        'title': 'React Fundamental',
+        'thumbnail': 'https://picsum.photos/seed/react/200/200',
+        'isFree': true,
+        'price': 0,
+        'difficulty': 'beginner',
+        'category': {'name': 'Web Development'},
+        'trainer': {'name': 'Trainer G'},
+        'averageRating': 4.7,
+        '_count': {'enrollments': 1200},
+      },
+      {
+        'id': 2,
+        'title': 'Advanced Flutter',
+        'thumbnail': 'https://picsum.photos/seed/flutter/200/200',
+        'isFree': false,
+        'price': 150000,
+        'difficulty': 'advanced',
+        'category': {'name': 'Mobile Development'},
+        'trainer': {'name': 'Trainer H'},
+        'averageRating': 4.9,
+        '_count': {'enrollments': 850},
+      },
+      {
+        'id': 3,
+        'title': 'Python for Data Science',
+        'thumbnail': 'https://picsum.photos/seed/python/200/200',
+        'isFree': false,
+        'price': 200000,
+        'difficulty': 'pro',
+        'category': {'name': 'Data Science'},
+        'trainer': {'name': 'Trainer J'},
+        'averageRating': 4.8,
+        '_count': {'enrollments': 340},
+      },
+      {
+        'id': 4,
+        'title': 'UI/UX Design Basics',
+        'thumbnail': 'https://picsum.photos/seed/design/200/200',
+        'isFree': true,
+        'price': 0,
+        'difficulty': 'beginner',
+        'category': {'name': 'Design'},
+        'trainer': {'name': 'Trainer K'},
+        'averageRating': 4.6,
+        '_count': {'enrollments': 2100},
+      },
+      {
+        'id': 5,
+        'title': 'Machine Learning',
+        'thumbnail': 'https://picsum.photos/seed/ml/200/200',
+        'isFree': false,
+        'price': 300000,
+        'difficulty': 'advanced',
+        'category': {'name': 'Data Science'},
+        'trainer': {'name': 'Trainer L'},
+        'averageRating': 4.9,
+        '_count': {'enrollments': 520},
+      },
+      {
+        'id': 6,
+        'title': 'Intro to HTML & CSS',
+        'thumbnail': 'https://picsum.photos/seed/html/200/200',
+        'isFree': true,
+        'price': 0,
+        'difficulty': 'beginner',
+        'category': {'name': 'Web Development'},
+        'trainer': {'name': 'Trainer M'},
+        'averageRating': 4.5,
+        '_count': {'enrollments': 3100},
+      },
+    ];
 
     if (mounted) {
-      final courses =
-          (result['courses'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-      final total = result['total'] as int? ?? 0;
       setState(() {
         _isSearching = false;
-        _hasSearched = true;
-        _searchResults = courses;
-        _totalResults = total;
       });
+
+      // Navigate to the results page
+      if (!context.mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SearchResultsPage(
+            query: trimmed,
+            results: courses,
+          ),
+        ),
+      );
     }
   }
 
@@ -188,26 +270,24 @@ class _SearchPageState extends State<SearchPage> {
                   ? const Center(
                       child: CircularProgressIndicator(color: _primaryPurple),
                     )
-                  : _hasSearched
-                      ? _buildResultsView()
-                      : SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (_recentSearches.isNotEmpty) ...[
-                                const SizedBox(height: 12),
-                                _buildRecentSearchSection(),
-                                const SizedBox(height: 24),
-                                Divider(color: _divider, thickness: 1),
-                                const SizedBox(height: 24),
-                              ],
-                              _buildTrendingSection(),
-                              const SizedBox(height: 32),
-                            ],
-                          ),
-                        ),
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (_recentSearches.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildRecentSearchSection(),
+                            const SizedBox(height: 24),
+                            Divider(color: _divider, thickness: 1),
+                            const SizedBox(height: 24),
+                          ],
+                          _buildTrendingSection(),
+                          const SizedBox(height: 32),
+                        ],
+                      ),
+                    ),
             ),
           ],
         ),
@@ -308,8 +388,7 @@ class _SearchPageState extends State<SearchPage> {
                           onPressed: () {
                             _searchController.clear();
                             setState(() {
-                              _hasSearched = false;
-                              _searchResults = [];
+
                             });
                             _focusNode.requestFocus();
                           },
@@ -383,90 +462,6 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  // ─── Search Results ───────────────────────────────────────────────────────
-  Widget _buildResultsView() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-          child: Row(
-            children: [
-              Text(
-                '$_totalResults course${_totalResults != 1 ? 's' : ''} found',
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: _textGray,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _hasSearched = false;
-                    _searchResults = [];
-                  });
-                  _searchController.clear();
-                },
-                child: const Text(
-                  'Clear',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: _primaryPurple,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: _searchResults.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 88,
-                        height: 88,
-                        decoration: const BoxDecoration(
-                          color: _lightPurple,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.search_off_rounded,
-                          size: 44,
-                          color: _primaryPurple.withValues(alpha: 0.45),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        'No courses found',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: _textDark,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Try different keywords or adjust filters',
-                        style: TextStyle(fontSize: 14, color: _textGray),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                  itemCount: _searchResults.length,
-                  itemBuilder: (_, i) =>
-                      _CourseResultCard(course: _searchResults[i]),
-                ),
-        ),
-      ],
-    );
-  }
 
   // ─── Recent Searches ─────────────────────────────────────────────────────
   Widget _buildRecentSearchSection() {
@@ -960,204 +955,6 @@ class _ActiveChip extends StatelessWidget {
   }
 }
 
-// ─── Course Result Card ────────────────────────────────────────────────────
-class _CourseResultCard extends StatelessWidget {
-  const _CourseResultCard({required this.course});
-
-  final Map<String, dynamic> course;
-
-  String _formatPrice(dynamic price, bool isFree) {
-    if (isFree) return 'Free';
-    final p = (price as num?)?.toDouble() ?? 0;
-    if (p == 0) return 'Free';
-    // Format as Indonesian Rupiah
-    final formatted = p
-        .toInt()
-        .toString()
-        .replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (m) => '${m[1]}.',
-        );
-    return 'Rp $formatted';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final title = course['title'] as String? ?? '';
-    final thumbnail = course['thumbnail'] as String?;
-    final isFree = course['isFree'] as bool? ?? false;
-    final price = course['price'];
-    final category = course['category'] as Map<String, dynamic>?;
-    final trainer = course['trainer'] as Map<String, dynamic>?;
-    final avgRating =
-        (course['averageRating'] as num?)?.toDouble() ?? 0.0;
-    final count = course['_count'] as Map<String, dynamic>?;
-    final enrollCount = (count?['enrollments'] as int?) ?? 0;
-    final isPriceFree = isFree || (price as num?)?.toDouble() == 0;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF5E4AB3).withValues(alpha: 0.07),
-            blurRadius: 18,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () {
-            // TODO: Navigate to course detail
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Thumbnail
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: thumbnail != null && thumbnail.isNotEmpty
-                      ? Image.network(
-                          thumbnail,
-                          width: 82,
-                          height: 82,
-                          fit: BoxFit.cover,
-                          errorBuilder: (ctx, err, st) => _placeholder(),
-                        )
-                      : _placeholder(),
-                ),
-                const SizedBox(width: 14),
-                // Info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (category != null)
-                        Text(
-                          category['name'] as String? ?? '',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF7B67CC),
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      const SizedBox(height: 4),
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1E1B2E),
-                          height: 1.35,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (trainer != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          trainer['name'] as String? ?? '',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF9C9AA5),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          // Rating
-                          if (avgRating > 0) ...[
-                            const Icon(Icons.star_rounded,
-                                color: Color(0xFFFFC107), size: 14),
-                            const SizedBox(width: 2),
-                            Text(
-                              avgRating.toStringAsFixed(1),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF1E1B2E),
-                              ),
-                            ),
-                            Container(
-                              margin:
-                                  const EdgeInsets.symmetric(horizontal: 6),
-                              width: 3,
-                              height: 3,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF9C9AA5),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ],
-                          // Enrollments
-                          const Icon(Icons.people_rounded,
-                              size: 13, color: Color(0xFF9C9AA5)),
-                          const SizedBox(width: 3),
-                          Text(
-                            '$enrollCount',
-                            style: const TextStyle(
-                                fontSize: 12, color: Color(0xFF9C9AA5)),
-                          ),
-                          const Spacer(),
-                          // Price badge
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 9, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isPriceFree
-                                  ? const Color(0xFFE8F5E9)
-                                  : const Color(0xFFEDE9FF),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              _formatPrice(price, isFree),
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: isPriceFree
-                                    ? const Color(0xFF2E7D32)
-                                    : const Color(0xFF5E4AB3),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _placeholder() {
-    return Container(
-      width: 82,
-      height: 82,
-      color: const Color(0xFFEDE9FF),
-      child: const Icon(
-        Icons.play_circle_outline_rounded,
-        color: Color(0xFF7B67CC),
-        size: 34,
-      ),
-    );
-  }
-}
 
 // ─── Recent Search Item ────────────────────────────────────────────────────
 class _RecentSearchItem extends StatelessWidget {

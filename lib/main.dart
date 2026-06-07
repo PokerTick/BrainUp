@@ -1,3 +1,4 @@
+import 'package:brainup/pages/trainer_dashboard.dart';
 import 'package:brainup/ui/main_shell.dart';
 import 'package:brainup/pages/course/CourseNotPurchase.dart';
 import 'package:brainup/pages/course/CoursePurchase.dart';
@@ -19,7 +20,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const Coursepurchase(),
+      home: const Homepages(),
     );
   }
 }

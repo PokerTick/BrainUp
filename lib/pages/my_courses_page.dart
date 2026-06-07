@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:brainup/ui/bottomnavigation.dart';
 
 // ─── Data Model ──────────────────────────────────────────────────────────────
 
@@ -134,6 +135,7 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0FF),
+      bottomNavigationBar: const AppBottomNavigationBar(initialIndex: 2),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
