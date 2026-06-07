@@ -44,7 +44,7 @@ class HomeHeader extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withOpacity(1),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: Colors.white.withOpacity(0.3)),
                   ),
@@ -62,7 +62,7 @@ class HomeHeader extends StatelessWidget {
                         style: GoogleFonts.poppins(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                          color: const Color.fromARGB(255, 41, 191, 24),
                         ),
                       ),
                     ],
@@ -89,7 +89,7 @@ class HomeHeader extends StatelessWidget {
                   ),
                   child: ClipOval(
                     child: Image.asset(
-                      'lib/assets/avatar.png',
+                      'lib/assets/Takeshi.png',
                       fit: BoxFit.cover,
                     ),
                   ),
