@@ -91,7 +91,24 @@ class ApiService {
     return null;
   }
 
-  // ─── Gamification ─────────────────────────────────────────────────────────
+  // ─── Gamification & User ──────────────────────────────────────────────────
+
+  /// GET /users/profile  (requires auth)
+  /// Returns: { id, name, email, role, etc. }
+  static Future<Map<String, dynamic>?> getUserProfile() async {
+    try {
+      final headers = await _authHeaders();
+      final response = await http
+          .get(Uri.parse('$baseUrl/users/profile'), headers: headers)
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['data'] as Map<String, dynamic>?;
+      }
+    } catch (_) {}
+    return null;
+  }
 
   /// GET /gamification/dashboard  (requires auth)
   /// Returns: { xp, currentStreak, lastLoginDate, unusedCoupons, history }

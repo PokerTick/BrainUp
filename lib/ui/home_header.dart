@@ -12,6 +12,7 @@ class HomeHeader extends StatefulWidget {
 class _HomeHeaderState extends State<HomeHeader> {
   int _xp = 0;
   int _currentStreak = 0;
+  String _userName = 'there';
   bool _isLoading = true;
 
   @override
@@ -21,11 +22,26 @@ class _HomeHeaderState extends State<HomeHeader> {
   }
 
   Future<void> _loadDashboard() async {
-    final data = await ApiService.getGamificationDashboard();
+    // Fetch both Dashboard and Profile concurrently
+    final results = await Future.wait([
+      ApiService.getGamificationDashboard(),
+      ApiService.getUserProfile(),
+    ]);
+    
+    final dashboardData = results[0];
+    final profileData = results[1];
+
     if (mounted) {
       setState(() {
-        _xp = (data?['xp'] as num?)?.toInt() ?? 0;
-        _currentStreak = (data?['currentStreak'] as num?)?.toInt() ?? 0;
+        _xp = (dashboardData?['xp'] as num?)?.toInt() ?? 0;
+        _currentStreak = (dashboardData?['currentStreak'] as num?)?.toInt() ?? 0;
+        
+        if (profileData != null && profileData['name'] != null) {
+          final fullName = profileData['name'] as String;
+          // Extract first name for a friendlier greeting
+          _userName = fullName.split(' ').first;
+        }
+        
         _isLoading = false;
       });
     }
@@ -48,7 +64,7 @@ class _HomeHeaderState extends State<HomeHeader> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Hey there! 👋',
+                        'Hey $_userName! 👋',
                         style: GoogleFonts.poppins(
                           fontSize: 26,
                           fontWeight: FontWeight.w700,
@@ -126,7 +142,7 @@ class _HomeHeaderState extends State<HomeHeader> {
                   ),
                   child: ClipOval(
                     child: Image.asset(
-                      'lib/assets/avatar.png',
+                      'lib/assets/Takeshi.png',
                       fit: BoxFit.cover,
                     ),
                   ),

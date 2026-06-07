@@ -1,3 +1,4 @@
+import 'package:brainup/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../ui/bottomnavigation.dart';
@@ -26,11 +27,23 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _userName = prefs.getString('userName') ?? 'User';
-      _userEmail = prefs.getString('userEmail') ?? 'user@example.com';
-    });
+    final profile = await ApiService.getUserProfile();
+    
+    if (!mounted) return;
+    
+    if (profile != null) {
+      setState(() {
+        _userName = profile['name'] ?? 'User';
+        _userEmail = profile['email'] ?? 'user@example.com';
+      });
+    } else {
+      // Fallback if network fails, try shared preferences
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _userName = prefs.getString('userName') ?? 'User';
+        _userEmail = prefs.getString('userEmail') ?? 'user@example.com';
+      });
+    }
   }
 
   Future<void> _handleLogout() async {
