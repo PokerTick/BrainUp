@@ -41,13 +41,13 @@ class _SingupState extends State<Singup> {
 
     setState(() => _isLoading = true);
 
-    final result = await ApiService.register(name, email, password);
+    final result = await ApiService.register(name: name, email: email, password: password);
 
     if (!mounted) return;
 
     setState(() => _isLoading = false);
 
-    if (result['success'] == true) {
+    if (result != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Registration successful! Please login.')),
       );
@@ -58,7 +58,7 @@ class _SingupState extends State<Singup> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message'])),
+        const SnackBar(content: Text('Registration failed. Please try again.')),
       );
     }
   }

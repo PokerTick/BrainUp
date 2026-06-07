@@ -69,6 +69,30 @@ class _LoginState extends State<Login> {
     }
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _isLoading = true;
+      _errorMsg = null;
+    });
+
+    final result = await ApiService.googleSignIn();
+
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const Homepages()),
+        (route) => false,
+      );
+    } else {
+      setState(() {
+        _isLoading = false;
+        _errorMsg = result['message'] ?? 'Google sign-in failed.';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -354,10 +378,10 @@ class _LoginState extends State<Login> {
                               Image.asset('lib/assets/GoogleLogo.png'),
                               const SizedBox(width: 5),
                               const Text(
-                                'Continue with Google',
+                                'Google',
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 14,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
