@@ -66,7 +66,7 @@ class _LoginState extends State<Login> {
                     const SizedBox(height: 16),
                     const Center(
                       child: Text(
-                        "Let's Register First",
+                        "Login",
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -167,7 +167,7 @@ class _LoginState extends State<Login> {
                           ),
                         ),
                         child: const Text(
-                          'Register',
+                          'Login',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,

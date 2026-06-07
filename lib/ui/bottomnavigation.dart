@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../pages/homepages.dart';
+import '../pages/course/CourseNotPurchase.dart';
 
 class AppBottomNavigationBar extends StatefulWidget {
-  const AppBottomNavigationBar({super.key});
+  final int initialIndex;
+
+  const AppBottomNavigationBar({super.key, this.initialIndex = 0});
 
   @override
   State<AppBottomNavigationBar> createState() => _AppBottomNavigationBarState();
 }
 
 class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
-  int currentIndex = 0;
+  late int currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    currentIndex = widget.initialIndex;
+  }
 
   static const _items = [
     _NavItemData(label: 'Home', assetPath: 'lib/assets/Home.svg'),
@@ -65,8 +75,29 @@ class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
                       child: _NavItem(
                         data: _items[index],
                         isActive: isActive,
-                        onTap: () =>
-                            setState(() => currentIndex = index),
+                        onTap: () {
+                          if (currentIndex == index) return; // Already on this tab
+
+                          setState(() => currentIndex = index);
+
+                          // Wait for the bump animation before navigating
+                          Future.delayed(const Duration(milliseconds: 300), () {
+                            if (!context.mounted) return;
+
+                            if (index == 0) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const Homepages()),
+                              );
+                            } else if (index == 2) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const Coursenotpurchase()),
+                              );
+                            }
+                            // You can add routing for Search (index 1) and Profile (index 3) here
+                          });
+                        },
                       ),
                     );
                   }),
