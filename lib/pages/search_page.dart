@@ -109,6 +109,12 @@ class _SearchPageState extends State<SearchPage> {
           builder: (_) => SearchResultsPage(
             query: trimmed,
             results: courses,
+            categories: _categories,
+            initialCategoryId: _selectedCategoryId,
+            initialIsFree: _isFree,
+            initialMinPrice: _minPrice,
+            initialMaxPrice: _maxPrice,
+            maxPriceLimit: _kMaxPrice,
           ),
         ),
       );
@@ -156,7 +162,7 @@ class _SearchPageState extends State<SearchPage> {
       barrierColor: Colors.black.withValues(alpha: 0.28),
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => _FilterSheet(
+      builder: (ctx) => CourseFilterSheet(
         categories: _categories,
         initialCategoryId: _selectedCategoryId,
         initialIsFree: _isFree,
@@ -463,8 +469,8 @@ class _SearchPageState extends State<SearchPage> {
 }
 
 // ─── Filter Bottom Sheet ───────────────────────────────────────────────────
-class _FilterSheet extends StatefulWidget {
-  const _FilterSheet({
+class CourseFilterSheet extends StatefulWidget {
+  const CourseFilterSheet({
     required this.categories,
     required this.initialCategoryId,
     required this.initialIsFree,
@@ -484,10 +490,10 @@ class _FilterSheet extends StatefulWidget {
       int? categoryId, bool? isFree, double minPrice, double maxPrice) onApply;
 
   @override
-  State<_FilterSheet> createState() => _FilterSheetState();
+  State<CourseFilterSheet> createState() => _CourseFilterSheetState();
 }
 
-class _FilterSheetState extends State<_FilterSheet> {
+class _CourseFilterSheetState extends State<CourseFilterSheet> {
   static const Color _purple = Color(0xFF5E4AB3);
   static const Color _lightPurple = Color(0xFFEDE9FF);
   static const Color _bgChip = Color(0xFFF5F3FF);

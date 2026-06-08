@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:brainup/ui/bottomnavigation.dart';
+import '../services/api_service.dart';
+import 'search_page.dart';
 
 /// Standalone search results page.
 /// Receives the search query and a list of course results from the caller.
@@ -9,10 +11,22 @@ class SearchResultsPage extends StatefulWidget {
     super.key,
     required this.query,
     required this.results,
+    required this.categories,
+    this.initialCategoryId,
+    this.initialIsFree,
+    required this.initialMinPrice,
+    required this.initialMaxPrice,
+    required this.maxPriceLimit,
   });
 
   final String query;
   final List<Map<String, dynamic>> results;
+  final List<Map<String, dynamic>> categories;
+  final int? initialCategoryId;
+  final bool? initialIsFree;
+  final double initialMinPrice;
+  final double initialMaxPrice;
+  final double maxPriceLimit;
 
   @override
   State<SearchResultsPage> createState() => _SearchResultsPageState();
@@ -35,13 +49,32 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
     'Pro',
   ];
   int _activeFilter = 0;
+  
+  late List<Map<String, dynamic>> _currentResults;
+  bool _isSearching = false;
+  
+  // Advanced filters from sheet
+  late int? _selectedCategoryId;
+  late bool? _isFree;
+  late double _minPrice;
+  late double _maxPrice;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentResults = widget.results;
+    _selectedCategoryId = widget.initialCategoryId;
+    _isFree = widget.initialIsFree;
+    _minPrice = widget.initialMinPrice;
+    _maxPrice = widget.initialMaxPrice;
+  }
 
   List<Map<String, dynamic>> get _filteredResults {
-    if (_activeFilter == 0) return widget.results;
+    if (_activeFilter == 0) return _currentResults;
 
     if (_activeFilter == 1) {
       // Free
-      return widget.results.where((c) {
+      return _currentResults.where((c) {
         final isFree = c['isFree'] as bool? ?? false;
         final price = (c['price'] as num?)?.toDouble() ?? 0;
         return isFree || price == 0;
@@ -50,24 +83,61 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
 
     // Beginner / Advanced / Pro — filter by difficulty
     final level = _filterLabels[_activeFilter].toLowerCase();
-    return widget.results.where((c) {
+    return _currentResults.where((c) {
       final diff = (c['difficulty'] as String?)?.toLowerCase() ?? '';
       return diff == level;
     }).toList();
   }
 
+  Future<void> _fetchNewResults() async {
+    setState(() => _isSearching = true);
+    final result = await ApiService.searchCourses(
+      widget.query,
+      limit: 20,
+      categoryId: _selectedCategoryId,
+      isFree: _isFree,
+      minPrice: (_isFree == true || _minPrice == 0) ? null : _minPrice,
+      maxPrice: (_isFree == true || _maxPrice >= widget.maxPriceLimit)
+          ? null
+          : _maxPrice,
+    );
+
+    List<Map<String, dynamic>> courses = [];
+    final inner = result['courses'] ?? result['data'] ?? result;
+    if (inner is List) {
+      courses = inner.cast<Map<String, dynamic>>();
+    }
+
+    if (mounted) {
+      setState(() {
+        _currentResults = courses;
+        _isSearching = false;
+      });
+    }
+  }
+
   void _showFilterSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.28),
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => _SortSheet(
-        activeFilter: _activeFilter,
-        filterLabels: _filterLabels,
-        onSelect: (i) {
-          setState(() => _activeFilter = i);
+      builder: (ctx) => CourseFilterSheet(
+        categories: widget.categories,
+        initialCategoryId: _selectedCategoryId,
+        initialIsFree: _isFree,
+        initialMinPrice: _minPrice,
+        initialMaxPrice: _maxPrice,
+        maxPriceLimit: widget.maxPriceLimit,
+        onApply: (catId, isFree, minP, maxP) {
+          setState(() {
+            _selectedCategoryId = catId;
+            _isFree = isFree;
+            _minPrice = minP;
+            _maxPrice = maxP;
+          });
           Navigator.pop(ctx);
+          _fetchNewResults();
         },
       ),
     );
@@ -93,21 +163,25 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
 
             // ── Results grid ──
             Expanded(
-              child: filtered.isEmpty
-                  ? _buildEmptyState()
-                  : GridView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 16,
-                        crossAxisSpacing: 14,
-                        childAspectRatio: 0.72,
-                      ),
-                      itemCount: filtered.length,
-                      itemBuilder: (_, i) =>
-                          CourseResultCard(course: filtered[i]),
-                    ),
+              child: _isSearching
+                  ? const Center(
+                      child: CircularProgressIndicator(color: _primaryPurple),
+                    )
+                  : filtered.isEmpty
+                      ? _buildEmptyState()
+                      : GridView.builder(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 14,
+                            childAspectRatio: 0.72,
+                          ),
+                          itemCount: filtered.length,
+                          itemBuilder: (_, i) =>
+                              CourseResultCard(course: filtered[i]),
+                        ),
             ),
           ],
         ),
@@ -416,109 +490,6 @@ class CourseResultCard extends StatelessWidget {
           color: Colors.white54,
           size: 36,
         ),
-      ),
-    );
-  }
-}
-
-// ─── Sort / Filter Bottom Sheet ───────────────────────────────────────────────
-class _SortSheet extends StatelessWidget {
-  const _SortSheet({
-    required this.activeFilter,
-    required this.filterLabels,
-    required this.onSelect,
-  });
-
-  final int activeFilter;
-  final List<String> filterLabels;
-  final void Function(int) onSelect;
-
-  static const Color _purple = Color(0xFF5E4AB3);
-  static const Color _textDark = Color(0xFF1E1B2E);
-  static const Color _textGray = Color(0xFF9C9AA5);
-  static const Color _divider = Color(0xFFEBE8F5);
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomPad = MediaQuery.of(context).padding.bottom;
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle
-          Container(
-            margin: const EdgeInsets.only(top: 12, bottom: 4),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE0DCF0),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
-            child: Row(
-              children: const [
-                Text(
-                  'Filter by',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: _textDark,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Divider(color: _divider, thickness: 1, height: 1),
-          // Options
-          ...List.generate(filterLabels.length, (i) {
-            final isActive = activeFilter == i;
-            return Column(
-              children: [
-                Material(
-                  color: Colors.white,
-                  child: InkWell(
-                    onTap: () => onSelect(i),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 16),
-                      child: Row(
-                        children: [
-                          Text(
-                            filterLabels[i],
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: isActive
-                                  ? FontWeight.w700
-                                  : FontWeight.w400,
-                              color: isActive ? _purple : _textDark,
-                            ),
-                          ),
-                          const Spacer(),
-                          if (isActive)
-                            const Icon(Icons.check_rounded,
-                                color: _purple, size: 20),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                if (i < filterLabels.length - 1)
-                  Divider(
-                      color: _divider, thickness: 1, height: 1,
-                      indent: 24, endIndent: 24),
-              ],
-            );
-          }),
-          SizedBox(height: bottomPad > 0 ? bottomPad : 24),
-        ],
       ),
     );
   }
