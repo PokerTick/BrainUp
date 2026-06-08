@@ -110,6 +110,92 @@ class ApiService {
     return null;
   }
 
+  /// PATCH /users/profile  (requires auth)
+  /// Updates user profile (name, email)
+  static Future<bool> updateUserProfile({
+    required String name,
+    required String email,
+  }) async {
+    try {
+      final headers = await _authHeaders();
+      final response = await http
+          .patch(
+            Uri.parse('$baseUrl/users/profile'),
+            headers: headers,
+            body: jsonEncode({
+              'name': name,
+              'email': email,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  /// PATCH /users/profile/avatar  (requires auth)
+  /// Updates user profile avatar (multipart file upload)
+  static Future<String?> uploadAvatar(String filePath) async {
+    try {
+      final token = await getAccessToken();
+      final uri = Uri.parse('$baseUrl/users/profile/avatar');
+      final request = http.MultipartRequest('PATCH', uri);
+      
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+      
+      request.files.add(await http.MultipartFile.fromPath('avatar', filePath));
+      
+      final response = await request.send().timeout(const Duration(seconds: 20));
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final resBody = await http.Response.fromStream(response);
+        final data = jsonDecode(resBody.body);
+        final inner = data['data'];
+        if (inner is Map) {
+          return inner['avatarUrl'] ?? inner['avatar'] ?? inner['url'];
+        }
+        return 'success';
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// PATCH /users/change-password  (requires auth)
+  /// Updates user password
+  static Future<Map<String, dynamic>> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final headers = await _authHeaders();
+      final response = await http
+          .patch(
+            Uri.parse('$baseUrl/users/change-password'),
+            headers: headers,
+            body: jsonEncode({
+              'oldPassword': oldPassword,
+              'currentPassword': oldPassword,
+              'newPassword': newPassword,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'message': data['message'] ?? 'Password updated successfully'};
+      } else {
+        return {'success': false, 'message': data['message'] ?? 'Failed to update password'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error, please try again'};
+    }
+  }
+
   /// GET /gamification/dashboard  (requires auth)
   /// Returns: { xp, currentStreak, lastLoginDate, unusedCoupons, history }
   static Future<Map<String, dynamic>?> getGamificationDashboard() async {
