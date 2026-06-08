@@ -1,5 +1,6 @@
 import 'package:brainup/pages/my_courses_page.dart';
 import 'package:brainup/pages/search_page.dart';
+import 'package:brainup/pages/profile/profile_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../pages/homepages.dart';
@@ -103,8 +104,12 @@ class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
                                 context,
                                 MaterialPageRoute(builder: (context) => const MyCoursesPage()),
                               );
+                            } else if (index == 3) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const ProfilePage()),
+                              );
                             }
-                            // You can add routing for Search (index 1) and Profile (index 3) here
                           });
                         },
                       ),

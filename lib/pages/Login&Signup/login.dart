@@ -3,6 +3,9 @@ import 'package:brainup/pages/homepages.dart';
 import 'package:brainup/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import '../../services/api_service.dart';
+import '../homepages.dart';
+import '../trainer_dashboard.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -338,7 +341,7 @@ class _LoginState extends State<Login> {
                       child: Padding(
                         padding: const EdgeInsets.all(2.0),
                         child: TextButton(
-                          onPressed: () {},
+                          onPressed: _isLoading ? null : _handleGoogleSignIn,
                           style: TextButton.styleFrom(
                             backgroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
