@@ -59,6 +59,9 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
   late double _minPrice;
   late double _maxPrice;
 
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+
   @override
   void initState() {
     super.initState();
@@ -67,6 +70,15 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
     _isFree = widget.initialIsFree;
     _minPrice = widget.initialMinPrice;
     _maxPrice = widget.initialMaxPrice;
+    
+    _searchController.text = widget.query;
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _focusNode.dispose();
+    super.dispose();
   }
 
   List<Map<String, dynamic>> get _filteredResults {
@@ -90,9 +102,13 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
   }
 
   Future<void> _fetchNewResults() async {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) return;
+    
+    _focusNode.unfocus();
     setState(() => _isSearching = true);
     final result = await ApiService.searchCourses(
-      widget.query,
+      query,
       limit: 20,
       categoryId: _selectedCategoryId,
       isFree: _isFree,
@@ -196,47 +212,83 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
       child: Row(
         children: [
           Expanded(
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _primaryPurple.withValues(alpha: 0.08),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: Row(
-                  children: [
-                    SvgPicture.asset(
-                      'lib/assets/Search.svg',
-                      width: 20,
-                      height: 20,
-                      colorFilter: const ColorFilter.mode(
-                        _primaryPurple,
-                        BlendMode.srcIn,
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: _primaryPurple.withValues(alpha: 0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  // Back Button inside the search bar on the left
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        bottomLeft: Radius.circular(16),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        widget.query,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          color: _textDark,
-                          fontWeight: FontWeight.w500,
+                      onTap: () => Navigator.pop(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        child: Icon(
+                          Icons.arrow_back_rounded,
+                          color: _textGray,
+                          size: 22,
                         ),
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      focusNode: _focusNode,
+                      onSubmitted: (_) => _fetchNewResults(),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: _textDark,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'What do you want to learn?',
+                        hintStyle: TextStyle(
+                          color: _textGray.withValues(alpha: 0.8),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                  ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: _searchController,
+                    builder: (context, value, child) {
+                      if (value.text.isEmpty) return const SizedBox.shrink();
+                      return GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          _searchController.clear();
+                          _focusNode.requestFocus();
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Icon(Icons.close_rounded,
+                              color: _textGray, size: 20),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
           ),
