@@ -56,6 +56,23 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
     }).toList();
   }
 
+  void _showFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.28),
+      isScrollControlled: true,
+      builder: (ctx) => _SortSheet(
+        activeFilter: _activeFilter,
+        filterLabels: _filterLabels,
+        onSelect: (i) {
+          setState(() => _activeFilter = i);
+          Navigator.pop(ctx);
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredResults;
@@ -151,25 +168,26 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
           ),
           const SizedBox(width: 10),
           // Filter icon button
-          Container(
+          SizedBox(
             width: 48,
             height: 48,
-            decoration: BoxDecoration(
+            child: Material(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: _primaryPurple.withValues(alpha: 0.08),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
+              elevation: 2,
+              shadowColor: _primaryPurple.withValues(alpha: 0.08),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () {
+                  _showFilterSheet();
+                },
+                child: const Center(
+                  child: Icon(
+                    Icons.tune_rounded,
+                    color: _primaryPurple,
+                    size: 22,
+                  ),
                 ),
-              ],
-            ),
-            child: const Center(
-              child: Icon(
-                Icons.tune_rounded,
-                color: _primaryPurple,
-                size: 22,
               ),
             ),
           ),
@@ -189,26 +207,30 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
         separatorBuilder: (_, __) => const SizedBox(width: 10),
         itemBuilder: (_, i) {
           final isActive = _activeFilter == i;
-          return GestureDetector(
-            onTap: () => setState(() => _activeFilter = i),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isActive ? _primaryPurple : Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isActive ? _primaryPurple : const Color(0xFFE0DCF0),
-                  width: 1.5,
+          return Material(
+            color: isActive ? _primaryPurple : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => setState(() => _activeFilter = i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isActive ? _primaryPurple : const Color(0xFFE0DCF0),
+                    width: 1.5,
+                  ),
                 ),
-              ),
-              child: Text(
-                _filterLabels[i],
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isActive ? Colors.white : _textGray,
+                child: Text(
+                  _filterLabels[i],
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isActive ? Colors.white : _textGray,
+                  ),
                 ),
               ),
             ),
@@ -394,6 +416,109 @@ class CourseResultCard extends StatelessWidget {
           color: Colors.white54,
           size: 36,
         ),
+      ),
+    );
+  }
+}
+
+// ─── Sort / Filter Bottom Sheet ───────────────────────────────────────────────
+class _SortSheet extends StatelessWidget {
+  const _SortSheet({
+    required this.activeFilter,
+    required this.filterLabels,
+    required this.onSelect,
+  });
+
+  final int activeFilter;
+  final List<String> filterLabels;
+  final void Function(int) onSelect;
+
+  static const Color _purple = Color(0xFF5E4AB3);
+  static const Color _textDark = Color(0xFF1E1B2E);
+  static const Color _textGray = Color(0xFF9C9AA5);
+  static const Color _divider = Color(0xFFEBE8F5);
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag handle
+          Container(
+            margin: const EdgeInsets.only(top: 12, bottom: 4),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE0DCF0),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
+            child: Row(
+              children: const [
+                Text(
+                  'Filter by',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: _textDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(color: _divider, thickness: 1, height: 1),
+          // Options
+          ...List.generate(filterLabels.length, (i) {
+            final isActive = activeFilter == i;
+            return Column(
+              children: [
+                Material(
+                  color: Colors.white,
+                  child: InkWell(
+                    onTap: () => onSelect(i),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 16),
+                      child: Row(
+                        children: [
+                          Text(
+                            filterLabels[i],
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: isActive
+                                  ? FontWeight.w700
+                                  : FontWeight.w400,
+                              color: isActive ? _purple : _textDark,
+                            ),
+                          ),
+                          const Spacer(),
+                          if (isActive)
+                            const Icon(Icons.check_rounded,
+                                color: _purple, size: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                if (i < filterLabels.length - 1)
+                  Divider(
+                      color: _divider, thickness: 1, height: 1,
+                      indent: 24, endIndent: 24),
+              ],
+            );
+          }),
+          SizedBox(height: bottomPad > 0 ? bottomPad : 24),
+        ],
       ),
     );
   }
