@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:brainup/services/api_service.dart';
 
 class AccountSettingsPage extends StatefulWidget {
   const AccountSettingsPage({super.key});
@@ -12,6 +14,8 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   bool _isEditing = false;
+  bool _isSaving = false;
+  String? _avatarUrl;
 
   @override
   void initState() {
@@ -24,13 +28,73 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     setState(() {
       _nameController.text = prefs.getString('userName') ?? '';
       _emailController.text = prefs.getString('userEmail') ?? '';
+      _avatarUrl = prefs.getString('userAvatar');
     });
   }
 
-  Future<void> _saveUserData() async {
+  Future<void> _pickAndUploadAvatar() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+
+    if (pickedFile == null) return;
+
+    setState(() => _isSaving = true);
+
+    final newAvatarUrl = await ApiService.uploadAvatar(pickedFile.path);
+
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+
+    if (newAvatarUrl == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to upload profile picture')),
+      );
+      return;
+    }
+
+    setState(() {
+      _avatarUrl = newAvatarUrl;
+    });
+
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('userName', _nameController.text.trim());
-    await prefs.setString('userEmail', _emailController.text.trim());
+    await prefs.setString('userAvatar', newAvatarUrl);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Profile picture updated successfully')),
+    );
+  }
+
+  Future<void> _saveUserData() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+
+    if (name.isEmpty || email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Name and email cannot be empty')),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    final success = await ApiService.updateUserProfile(name: name, email: email);
+
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update profile on server')),
+      );
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('userName', name);
+    await prefs.setString('userEmail', email);
 
     if (!mounted) return;
 
@@ -86,45 +150,56 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
             const SizedBox(height: 24),
 
             // Avatar
-            Stack(
-              children: [
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: const Color(0xFF6B58E6),
-                  child: ClipOval(
-                    child: Image.asset(
-                      'lib/assets/Takeshi.png',
-                      width: 96,
-                      height: 96,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.person,
-                        size: 48,
-                        color: Colors.white,
-                      ),
+            GestureDetector(
+              onTap: (_isEditing && !_isSaving) ? _pickAndUploadAvatar : null,
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundColor: const Color(0xFF6B58E6),
+                    child: ClipOval(
+                      child: (_avatarUrl != null && _avatarUrl!.isNotEmpty)
+                          ? Image.network(
+                              _avatarUrl!,
+                              width: 96,
+                              height: 96,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Image.asset(
+                                'lib/assets/Takeshi.png',
+                                width: 96,
+                                height: 96,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : Image.asset(
+                              'lib/assets/Takeshi.png',
+                              width: 96,
+                              height: 96,
+                              fit: BoxFit.cover,
+                            ),
                     ),
                   ),
-                ),
-                if (_isEditing)
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF6B58E6),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        color: Colors.white,
-                        size: 16,
+                  if (_isEditing)
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6B58E6),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
 
             const SizedBox(height: 32),
@@ -226,45 +301,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                       ),
                     ),
 
-                    const SizedBox(height: 20),
 
-                    // Password (read-only placeholder)
-                    const Text(
-                      'Password',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: Color(0xFF2B2B2F),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      obscureText: true,
-                      enabled: false,
-                      controller: TextEditingController(text: '••••••••'),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: const Color(0xFFF5F5F5),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        disabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        suffixIcon: TextButton(
-                          onPressed: () {},
-                          child: const Text(
-                            'Change',
-                            style: TextStyle(
-                              color: Color(0xFF6B58E6),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -280,21 +317,30 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: _saveUserData,
+                    onPressed: _isSaving ? null : _saveUserData,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF6B58E6),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'Save Changes',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Save Changes',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
               ),

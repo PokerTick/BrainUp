@@ -13,6 +13,7 @@ class _HomeHeaderState extends State<HomeHeader> {
   int _xp = 0;
   int _currentStreak = 0;
   String _userName = 'there';
+  String? _avatarUrl;
   bool _isLoading = true;
 
   @override
@@ -36,10 +37,12 @@ class _HomeHeaderState extends State<HomeHeader> {
         _xp = (dashboardData?['xp'] as num?)?.toInt() ?? 0;
         _currentStreak = (dashboardData?['currentStreak'] as num?)?.toInt() ?? 0;
         
-        if (profileData != null && profileData['name'] != null) {
-          final fullName = profileData['name'] as String;
-          // Extract first name for a friendlier greeting
-          _userName = fullName.split(' ').first;
+        if (profileData != null) {
+          if (profileData['name'] != null) {
+            final fullName = profileData['name'] as String;
+            _userName = fullName.split(' ').first;
+          }
+          _avatarUrl = profileData['avatarUrl'] ?? profileData['avatar'];
         }
         
         _isLoading = false;
@@ -141,10 +144,19 @@ class _HomeHeaderState extends State<HomeHeader> {
                     ],
                   ),
                   child: ClipOval(
-                    child: Image.asset(
-                      'lib/assets/Takeshi.png',
-                      fit: BoxFit.cover,
-                    ),
+                    child: (_avatarUrl != null && _avatarUrl!.isNotEmpty)
+                        ? Image.network(
+                            _avatarUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Image.asset(
+                              'lib/assets/Takeshi.png',
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : Image.asset(
+                            'lib/assets/Takeshi.png',
+                            fit: BoxFit.cover,
+                          ),
                   ),
                 ),
               ],
