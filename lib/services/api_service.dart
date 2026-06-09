@@ -433,6 +433,59 @@ class ApiService {
     return false;
   }
 
+  // ─── User Specific Data ───────────────────────────────────────────────────
+
+  /// GET /orders  (requires auth)
+  static Future<List<Map<String, dynamic>>> getUserOrders() async {
+    try {
+      final headers = await _authHeaders();
+      final response = await http
+          .get(Uri.parse('$baseUrl/orders'), headers: headers)
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List list = data['data'] ?? data['items'] ?? [];
+        return list.cast<Map<String, dynamic>>();
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  /// GET /wishlist  (requires auth)
+  static Future<List<Map<String, dynamic>>> getWishlist() async {
+    try {
+      final headers = await _authHeaders();
+      final response = await http
+          .get(Uri.parse('$baseUrl/wishlist'), headers: headers)
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List list = data['data'] ?? data['items'] ?? [];
+        return list.cast<Map<String, dynamic>>();
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  /// GET /vouchers  (requires auth)
+  static Future<List<Map<String, dynamic>>> getVouchers() async {
+    try {
+      final headers = await _authHeaders();
+      final response = await http
+          .get(Uri.parse('$baseUrl/vouchers'), headers: headers)
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List list = data['data'] ?? data['items'] ?? [];
+        return list.cast<Map<String, dynamic>>();
+      }
+    } catch (_) {}
+    return [];
+  }
+
   // ─── Google Sign-In ───────────────────────────────────────────────────────
 
   static Future<Map<String, dynamic>> googleSignIn() async {

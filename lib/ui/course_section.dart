@@ -50,21 +50,27 @@ class _CourseSectionState extends State<CourseSection> {
                   color: const Color(0xFF2D2D3A),
                 ),
               ),
-              _SeeMoreButton(onTap: () async {
-                // Fetch more courses when 'See More' is pressed to show all
-                final allCourses = await ApiService.getCourses(limit: 100);
-                if (context.mounted) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SearchResultsPage(
-                        query: '',
-                        results: allCourses,
+              _SeeMoreButton(
+                onTap: () async {
+                  // Fetch more courses when 'See More' is pressed to show all
+                  final allCourses = await ApiService.getCourses(limit: 100);
+                  if (context.mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SearchResultsPage(
+                          query: '',
+                          results: allCourses,
+                          categories: const [],
+                          initialMinPrice: 0.0,
+                          initialMaxPrice: 1000000.0,
+                          maxPriceLimit: 1000000.0,
+                        ),
                       ),
-                    ),
-                  );
-                }
-              }),
+                    );
+                  }
+                },
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -72,8 +78,8 @@ class _CourseSectionState extends State<CourseSection> {
           _isLoading
               ? _buildSkeletonGrid()
               : _courses.isEmpty
-                  ? _buildEmpty()
-                  : _buildCourseGrid(),
+              ? _buildEmpty()
+              : _buildCourseGrid(),
         ],
       ),
     );
@@ -143,10 +149,7 @@ class _CourseSectionState extends State<CourseSection> {
       child: Center(
         child: Text(
           'No courses available',
-          style: GoogleFonts.poppins(
-            fontSize: 13,
-            color: Colors.grey.shade500,
-          ),
+          style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey.shade500),
         ),
       ),
     );
@@ -251,101 +254,101 @@ class _CourseCard extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Course thumbnail
-          ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(16),
-              topRight: Radius.circular(16),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            child: AspectRatio(
-              aspectRatio: 1.3,
-              child: thumbnailUrl != null
-                  ? Image.network(
-                      thumbnailUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => _placeholderImage(),
-                    )
-                  : _placeholderImage(),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Course thumbnail
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+              child: AspectRatio(
+                aspectRatio: 1.3,
+                child: thumbnailUrl != null
+                    ? Image.network(
+                        thumbnailUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => _placeholderImage(),
+                      )
+                    : _placeholderImage(),
+              ),
             ),
-          ),
-          // Course info
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF2D2D3A),
+            // Course info
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF2D2D3A),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  trainerName,
-                  style: GoogleFonts.poppins(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.grey.shade600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  ratingDisplay,
-                  style: GoogleFonts.poppins(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isFree || (price as num? ?? 0) == 0
-                        ? const Color(0xFF29BF18).withValues(alpha: 0.1)
-                        : const Color(0xFF7B42F6).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    priceDisplay,
+                  const SizedBox(height: 4),
+                  Text(
+                    trainerName,
                     style: GoogleFonts.poppins(
                       fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: isFree || (price as num? ?? 0) == 0
-                          ? const Color(0xFF29BF18)
-                          : const Color(0xFF7B42F6),
+                      fontWeight: FontWeight.w400,
+                      color: Colors.grey.shade600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    ratingDisplay,
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.grey.shade600,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isFree || (price as num? ?? 0) == 0
+                          ? const Color(0xFF29BF18).withValues(alpha: 0.1)
+                          : const Color(0xFF7B42F6).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      priceDisplay,
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: isFree || (price as num? ?? 0) == 0
+                            ? const Color(0xFF29BF18)
+                            : const Color(0xFF7B42F6),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
 

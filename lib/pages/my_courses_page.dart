@@ -1,8 +1,10 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:brainup/ui/bottomnavigation.dart';
 import 'package:brainup/services/api_service.dart';
 import 'package:brainup/pages/course/CoursePurchase.dart';
+import 'package:brainup/pages/search_page.dart';
 
 // ─── Data Model ──────────────────────────────────────────────────────────────
 
@@ -14,6 +16,8 @@ class EnrolledCourse {
   final bool completed;
   final String? trainerName;
   final String? categoryName;
+  final int? categoryId;
+  final double price;
 
   const EnrolledCourse({
     required this.id,
@@ -23,12 +27,21 @@ class EnrolledCourse {
     required this.completed,
     this.trainerName,
     this.categoryName,
+    this.categoryId,
+    this.price = 0.0,
   });
 
   factory EnrolledCourse.fromJson(Map<String, dynamic> json) {
     final course = json['course'] as Map<String, dynamic>? ?? {};
     final trainer = course['trainer'] as Map<String, dynamic>?;
     final category = course['category'] as Map<String, dynamic>?;
+    
+    // Attempt to parse price
+    double parsedPrice = 0.0;
+    if (course['price'] != null) {
+      parsedPrice = (course['price'] as num).toDouble();
+    }
+
     return EnrolledCourse(
       id: course['id'] as int? ?? 0,
       title: course['title'] as String? ?? '',
@@ -37,6 +50,8 @@ class EnrolledCourse {
       completed: json['completed'] as bool? ?? false,
       trainerName: trainer?['name'] as String?,
       categoryName: category?['name'] as String?,
+      categoryId: category?['id'] as int?,
+      price: parsedPrice,
     );
   }
 }
@@ -54,48 +69,130 @@ class MyCoursesPage extends StatefulWidget {
 
 class _MyCoursesPageState extends State<MyCoursesPage> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+
   List<EnrolledCourse> _allCourses = [];
   List<EnrolledCourse> _filteredCourses = [];
+  List<Map<String, dynamic>> _categories = [];
   bool _isLoading = true;
+
+  // Filter state
+  int? _selectedCategoryId;
+  bool? _isFree;
+  double _minPrice = 0;
+  double _maxPrice = _kMaxPrice;
+  static const double _kMaxPrice = 1000000;
+
+  bool get _hasActiveFilters => _selectedCategoryId != null || _isFree != null;
 
   @override
   void initState() {
     super.initState();
-    _loadCourses();
+    _loadData();
     _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
-  Future<void> _loadCourses() async {
-    final raw = await ApiService.getMyCourses();
-    final courses = raw.map((e) => EnrolledCourse.fromJson(e)).toList();
+  Future<void> _loadData() async {
+    final futures = await Future.wait([
+      ApiService.getMyCourses(),
+      ApiService.getCategories(),
+    ]);
+
+    final rawCourses = futures[0] as List<dynamic>;
+    final cats = futures[1] as List<Map<String, dynamic>>;
+
+    final courses = rawCourses.map((e) => EnrolledCourse.fromJson(e)).toList();
     if (mounted) {
       setState(() {
         _allCourses = courses;
+        _categories = cats;
         _filteredCourses = courses;
         _isLoading = false;
       });
+      _applyFilters();
     }
   }
 
-  void _onSearchChanged() {
-    final query = _searchController.text.toLowerCase();
+  void _onSearchChanged() => _applyFilters();
+
+  void _applyFilters() {
+    final query = _searchController.text.toLowerCase().trim();
     setState(() {
-      _filteredCourses = _allCourses
-          .where((c) => c.title.toLowerCase().contains(query))
-          .toList();
+      _filteredCourses = _allCourses.where((c) {
+        // Text search
+        if (query.isNotEmpty && !c.title.toLowerCase().contains(query)) {
+          return false;
+        }
+        // Category
+        if (_selectedCategoryId != null && c.categoryId != _selectedCategoryId) {
+          return false;
+        }
+        // Price/Free
+        if (_isFree != null) {
+          final isCourseFree = c.price <= 0;
+          if (_isFree! != isCourseFree) return false;
+        }
+        // Price range
+        if (c.price < _minPrice || c.price > _maxPrice) return false;
+
+        return true;
+      }).toList();
     });
   }
+
+  void _removeFilter({bool removeCategory = false, bool removeIsFree = false}) {
+    setState(() {
+      if (removeCategory) _selectedCategoryId = null;
+      if (removeIsFree) _isFree = null;
+    });
+    _applyFilters();
+  }
+
+  void _showFilterSheet() {
+    // Import CourseFilterSheet from search_page.dart (since we'll import it at the top)
+    showModalBottomSheet(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.28),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => CourseFilterSheet(
+        categories: _categories,
+        initialCategoryId: _selectedCategoryId,
+        initialIsFree: _isFree,
+        initialMinPrice: _minPrice,
+        initialMaxPrice: _maxPrice,
+        maxPriceLimit: _kMaxPrice,
+        onApply: (catId, isFree, minP, maxP) {
+          setState(() {
+            _selectedCategoryId = catId;
+            _isFree = isFree;
+            _minPrice = minP;
+            _maxPrice = maxP;
+          });
+          Navigator.pop(ctx);
+          _applyFilters();
+        },
+      ),
+    );
+  }
+
+  // ─── Palette ──────────────────────────────────────────────────────────────
+  static const Color _bgColor = Color(0xFFF5F3FF);
+  static const Color _primaryPurple = Color(0xFF5E4AB3);
+  static const Color _textDark = Color(0xFF1E1B2E);
+  static const Color _textGray = Color(0xFF9C9AA5);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F0FF),
+      backgroundColor: _bgColor,
       bottomNavigationBar: const AppBottomNavigationBar(initialIndex: 2),
       body: SafeArea(
         child: Column(
@@ -103,59 +200,8 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
           children: [
             const SizedBox(height: 16),
 
-            // ── Search Bar ───────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFFD6C9F5),
-                    width: 1.2,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 12),
-                    const Icon(
-                      Icons.search_rounded,
-                      color: Color(0xFF9C84D4),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF2B2B2F),
-                        ),
-                        decoration: const InputDecoration(
-                          hintText: 'What do you want to learn?',
-                          hintStyle: TextStyle(
-                            color: Color(0xFF9C84D4),
-                            fontSize: 14,
-                          ),
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      margin: const EdgeInsets.only(right: 12),
-                      child: const Icon(
-                        Icons.tune_rounded,
-                        color: Color(0xFF5E4AB3),
-                        size: 20,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            _buildSearchBar(),
+            if (_hasActiveFilters) _buildActiveFilterBar(),
 
             const SizedBox(height: 16),
 
@@ -164,7 +210,7 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
               child: _isLoading
                   ? const Center(
                       child: CircularProgressIndicator(
-                        color: Color(0xFF5E4AB3),
+                        color: _primaryPurple,
                       ),
                     )
                   : _filteredCourses.isEmpty
@@ -173,6 +219,170 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ─── Active filter chips bar ──────────────────────────────────────────────
+  Widget _buildActiveFilterBar() {
+    return Container(
+      color: _bgColor,
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                if (_selectedCategoryId != null)
+                  _ActiveChip(
+                    label: _categories
+                            .where((c) => c['id'] == _selectedCategoryId)
+                            .map((c) => c['name'] as String)
+                            .firstOrNull ??
+                        'Category',
+                    onRemove: () =>
+                        _removeFilter(removeCategory: true),
+                  ),
+                if (_isFree != null)
+                  _ActiveChip(
+                    label: _isFree! ? '🎁 Free' : '💰 Paid',
+                    onRemove: () => _removeFilter(removeIsFree: true),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Search Bar ───────────────────────────────────────────────────────────
+  Widget _buildSearchBar() {
+    return Container(
+      color: _bgColor,
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: _primaryPurple.withValues(alpha: 0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: _searchController,
+                focusNode: _focusNode,
+                onSubmitted: (_) => _focusNode.unfocus(),
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: _textDark,
+                  fontWeight: FontWeight.w500,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'What do you want to learn?',
+                  hintStyle: TextStyle(
+                    color: _textGray.withValues(alpha: 0.8),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                  ),
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: SvgPicture.asset(
+                      'lib/assets/Search.svg',
+                      width: 20,
+                      height: 20,
+                      colorFilter: ColorFilter.mode(
+                        _searchController.text.isNotEmpty
+                            ? _primaryPurple
+                            : _textGray,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                  ),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            _searchController.clear();
+                            setState(() {});
+                            _focusNode.requestFocus();
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Icon(Icons.close_rounded,
+                                color: _textGray, size: 20),
+                          ),
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 14,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          // Filter button with active indicator
+          GestureDetector(
+            onTap: _showFilterSheet,
+            child: Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: _hasActiveFilters ? _primaryPurple : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: _primaryPurple.withValues(alpha: 0.15),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+                border: _hasActiveFilters
+                    ? null
+                    : Border.all(
+                        color: const Color(0xFFEBE8F5),
+                        width: 1.5,
+                      ),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Icon(
+                    Icons.tune_rounded,
+                    color: _hasActiveFilters ? Colors.white : _primaryPurple,
+                    size: 24,
+                  ),
+                  if (_hasActiveFilters)
+                    Positioned(
+                      right: 12,
+                      top: 12,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF59E0B), // Amber dot
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -227,6 +437,51 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
               fontSize: 16,
               color: Color(0xFFB0A0D0),
               fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Active Filter Chip ────────────────────────────────────────────────────
+class _ActiveChip extends StatelessWidget {
+  const _ActiveChip({required this.label, required this.onRemove});
+
+  final String label;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 5, 6, 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFF5E4AB3).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF5E4AB3).withValues(alpha: 0.3),
+          width: 1.2,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF5E4AB3),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: onRemove,
+            child: const Icon(
+              Icons.close_rounded,
+              size: 14,
+              color: Color(0xFF5E4AB3),
             ),
           ),
         ],

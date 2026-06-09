@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../services/api_service.dart';
+import 'package:intl/intl.dart';
 
 // ─── Dummy Data Model ────────────────────────────────────────────────────────
 
@@ -17,30 +19,6 @@ class PurchaseRecord {
     required this.isSuccess,
   });
 }
-
-final _mockPurchases = [
-  const PurchaseRecord(
-    id: 1,
-    title: 'Generative AI for Beginners',
-    date: '12 Oct 2023',
-    amount: '\$49.99',
-    isSuccess: true,
-  ),
-  const PurchaseRecord(
-    id: 2,
-    title: 'How to train ur monkey',
-    date: '08 Oct 2023',
-    amount: '\$29.99',
-    isSuccess: true,
-  ),
-  const PurchaseRecord(
-    id: 3,
-    title: 'Grabbing the axolotl',
-    date: '01 Oct 2023',
-    amount: '\$15.00',
-    isSuccess: false,
-  ),
-];
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
@@ -62,11 +40,29 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
   }
 
   Future<void> _loadPurchases() async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 600));
+    final data = await ApiService.getUserOrders();
     if (mounted) {
       setState(() {
-        _purchases = _mockPurchases;
+        _purchases = data.map((order) {
+          final course = order['course'] as Map<String, dynamic>?;
+          final title = course?['title'] as String? ?? 'Unknown Course';
+          final amount = order['amount']?.toString() ?? '0';
+          
+          final dateStr = order['createdAt'] as String?;
+          final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
+          final formattedDate = date != null ? DateFormat('dd MMM yyyy').format(date) : '-';
+          
+          final status = (order['status'] as String?)?.toUpperCase() ?? 'FAILED';
+          final isSuccess = status == 'SUCCESS' || status == 'COMPLETED' || status == 'PAID';
+
+          return PurchaseRecord(
+            id: order['id'] as int? ?? 0,
+            title: title,
+            date: formattedDate,
+            amount: 'Rp $amount',
+            isSuccess: isSuccess,
+          );
+        }).toList();
         _isLoading = false;
       });
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/api_service.dart';
 
 class WishlistPage extends StatefulWidget {
   const WishlistPage({super.key});
@@ -10,17 +11,24 @@ class WishlistPage extends StatefulWidget {
 class _WishlistPageState extends State<WishlistPage> {
   final TextEditingController _searchController = TextEditingController();
 
-  // Placeholder wishlist data
-  final List<Map<String, String>> _wishlistItems = [
-    {'name': 'Course Name', 'trainer': 'Trainer G.', 'price': 'FREE'},
-    {'name': 'Course Name', 'trainer': 'Trainer G.', 'price': 'FREE'},
-    {'name': 'Course Name', 'trainer': 'Trainer G.', 'price': 'FREE'},
-    {'name': 'Course Name', 'trainer': 'Trainer G.', 'price': 'FREE'},
-    {'name': 'Course Name', 'trainer': 'Trainer G.', 'price': 'FREE'},
-    {'name': 'Course Name', 'trainer': 'Trainer G-', 'price': 'FREE'},
-    {'name': 'Course Name', 'trainer': 'Trainer G.', 'price': 'FREE'},
-    {'name': 'Course Name', 'trainer': 'Trainer G.', 'price': 'FREE'},
-  ];
+  List<Map<String, dynamic>> _wishlistItems = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWishlist();
+  }
+
+  Future<void> _loadWishlist() async {
+    final data = await ApiService.getWishlist();
+    if (mounted) {
+      setState(() {
+        _wishlistItems = data;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -78,23 +86,39 @@ class _WishlistPageState extends State<WishlistPage> {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.75,
-                ),
-                itemCount: _wishlistItems.length,
-                itemBuilder: (context, index) {
-                  final item = _wishlistItems[index];
-                  return _WishlistCard(
-                    name: item['name']!,
-                    trainer: item['trainer']!,
-                    price: item['price']!,
-                  );
-                },
-              ),
+              child: _isLoading 
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFF5E4AB3)))
+                : _wishlistItems.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Your wishlist is empty',
+                        style: TextStyle(color: Colors.grey.shade500),
+                      ),
+                    )
+                  : GridView.builder(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 0.75,
+                      ),
+                      itemCount: _wishlistItems.length,
+                      itemBuilder: (context, index) {
+                        final item = _wishlistItems[index];
+                        final course = item['course'] ?? item;
+                        final title = course['title'] ?? 'Unknown Course';
+                        final price = course['price']?.toString() ?? 'FREE';
+                        
+                        final trainerObj = course['trainer'];
+                        final trainer = (trainerObj is Map) ? trainerObj['name'] ?? 'Trainer' : 'Trainer';
+                        
+                        return _WishlistCard(
+                          name: title,
+                          trainer: trainer,
+                          price: price == 'FREE' || price == '0' ? 'FREE' : 'Rp $price',
+                        );
+                      },
+                    ),
             ),
           ),
         ],

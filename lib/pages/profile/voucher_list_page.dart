@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../services/api_service.dart';
+import 'package:intl/intl.dart';
 
 // ─── Dummy Data Model ────────────────────────────────────────────────────────
 
@@ -20,31 +22,6 @@ class Voucher {
   });
 }
 
-final _mockVouchers = [
-  const Voucher(
-    id: 1,
-    title: 'Welcome Bonus Discount',
-    code: 'WELCOME50',
-    discount: '50% OFF',
-    expiryDate: 'Valid until 31 Dec 2026',
-  ),
-  const Voucher(
-    id: 2,
-    title: 'Flutter Developer Special',
-    code: 'FLUTTER20',
-    discount: '20% OFF',
-    expiryDate: 'Valid until 15 Nov 2026',
-  ),
-  const Voucher(
-    id: 3,
-    title: 'Black Friday Sale',
-    code: 'BLACKFRIDAY',
-    discount: '90% OFF',
-    expiryDate: 'Expired on 28 Nov 2025',
-    isUsed: true,
-  ),
-];
-
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 class VoucherListPage extends StatefulWidget {
@@ -65,11 +42,23 @@ class _VoucherListPageState extends State<VoucherListPage> {
   }
 
   Future<void> _loadVouchers() async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 600));
+    final data = await ApiService.getVouchers();
     if (mounted) {
       setState(() {
-        _vouchers = _mockVouchers;
+        _vouchers = data.map((v) {
+          final dateStr = v['expiryDate'] as String?;
+          final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
+          final formattedDate = date != null ? 'Valid until ${DateFormat('dd MMM yyyy').format(date)}' : 'No Expiry';
+          
+          return Voucher(
+            id: v['id'] as int? ?? 0,
+            title: v['title'] as String? ?? 'Voucher',
+            code: v['code'] as String? ?? 'CODE',
+            discount: v['discount']?.toString() ?? 'Discount',
+            expiryDate: formattedDate,
+            isUsed: v['isUsed'] as bool? ?? false,
+          );
+        }).toList();
         _isLoading = false;
       });
     }
