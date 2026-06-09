@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
+import '../pages/course/CourseNotPurchase.dart';
 
 class CourseSection extends StatefulWidget {
   const CourseSection({super.key});
@@ -224,8 +225,17 @@ class _CourseCard extends StatelessWidget {
         ? '⭐ ${(avgRating as num).toStringAsFixed(1)}'
         : '⭐ –';
 
-    return Container(
-      decoration: BoxDecoration(
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Coursenotpurchase(courseId: data['id']),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
@@ -320,6 +330,7 @@ class _CourseCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 

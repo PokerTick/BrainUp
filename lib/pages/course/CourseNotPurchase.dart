@@ -1,9 +1,12 @@
+import 'package:brainup/pages/course/CoursePurchase.dart';
+import 'package:brainup/services/api_service.dart';
 import 'package:brainup/ui/bottomnavigation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class Coursenotpurchase extends StatefulWidget {
-  const Coursenotpurchase({super.key});
+  final int courseId;
+  const Coursenotpurchase({super.key, required this.courseId});
 
   @override
   State<Coursenotpurchase> createState() => _CoursenotpurchaseState();
@@ -11,67 +14,112 @@ class Coursenotpurchase extends StatefulWidget {
 
 class _CoursenotpurchaseState extends State<Coursenotpurchase> {
   bool isBookmarked = false;
+  Map<String, dynamic>? courseData;
+  bool isLoading = true;
+  bool isEnrolling = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCourse();
+  }
+
+  Future<void> _fetchCourse() async {
+    final data = await ApiService.getCourseById(widget.courseId);
+    if (mounted) {
+      setState(() {
+        courseData = data;
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _enrollCourse() async {
+    setState(() => isEnrolling = true);
+    final success = await ApiService.enrollInCourse(widget.courseId);
+    if (mounted) {
+      setState(() => isEnrolling = false);
+      if (success) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Coursepurchase(courseId: widget.courseId),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to enroll in the course. Please try again.')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Hero Image Section ──
-            _buildHeroImage(context),
-
-            // ── Course Info Body ──
-            Transform.translate(
-              offset: const Offset(0, -32),
-              child: Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(32),
-                    topRight: Radius.circular(32),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
+      body: isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF6B58E6)))
+          : courseData == null
+              ? const Center(child: Text('Course not found'))
+              : SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Title + Bookmark
-                      _buildTitleRow(),
-                      const SizedBox(height: 16),
+                      // ── Hero Image Section ──
+                      _buildHeroImage(context),
 
-                      // Instructor + Category Tag
-                      _buildInstructorRow(),
-                      const SizedBox(height: 24),
+                      // ── Course Info Body ──
+                      Transform.translate(
+                        offset: const Offset(0, -32),
+                        child: Container(
+                          width: double.infinity,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(32),
+                              topRight: Radius.circular(32),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Title + Bookmark
+                                _buildTitleRow(),
+                                const SizedBox(height: 16),
 
-                      // Price + Buy Button
-                      _buildPriceSection(),
-                      const SizedBox(height: 20),
+                                // Instructor + Category Tag
+                                _buildInstructorRow(),
+                                const SizedBox(height: 24),
 
-                      // Published & Enrolled Stats
-                      _buildStatsCard(),
-                      const SizedBox(height: 24),
+                                // Price + Buy Button
+                                _buildPriceSection(),
+                                const SizedBox(height: 20),
 
-                      // Description
-                      _buildDescriptionSection(),
+                                // Published & Enrolled Stats
+                                _buildStatsCard(),
+                                const SizedBox(height: 24),
+
+                                // Description
+                                _buildDescriptionSection(),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ),
-            ),
-          ],
-        ),
-      ),
       bottomNavigationBar: const _CourseBottomNavBar(),
     );
   }
 
   /// Hero image with back button overlay
   Widget _buildHeroImage(BuildContext context) {
+    final thumbnailUrl = courseData?['thumbnailUrl'] ?? courseData?['thumbnail'];
     return SizedBox(
       height: 300,
       width: double.infinity,
@@ -79,10 +127,20 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
         fit: StackFit.expand,
         children: [
           // Course image
-          Image.asset(
-            'lib/assets/Coding.png',
-            fit: BoxFit.cover,
-          ),
+          if (thumbnailUrl != null && thumbnailUrl.toString().isNotEmpty)
+            Image.network(
+              thumbnailUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Image.asset(
+                'lib/assets/Coding.png',
+                fit: BoxFit.cover,
+              ),
+            )
+          else
+            Image.asset(
+              'lib/assets/Coding.png',
+              fit: BoxFit.cover,
+            ),
           // Gradient overlay for readability
           Positioned.fill(
             child: DecoratedBox(
@@ -132,12 +190,13 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
 
   /// Course title with bookmark icon
   Widget _buildTitleRow() {
+    final title = courseData?['title'] ?? 'Untitled Course';
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Text(
-            'Basic Python for Beginner Level',
+            title,
             style: GoogleFonts.poppins(
               fontSize: 22,
               fontWeight: FontWeight.w700,
@@ -173,6 +232,13 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
 
   /// Instructor avatar, name, and category tag
   Widget _buildInstructorRow() {
+    final trainer = courseData?['trainer'] as Map<String, dynamic>?;
+    final trainerName = trainer?['name'] ?? 'Unknown Trainer';
+    final trainerAvatar = trainer?['avatar'];
+    
+    final category = courseData?['category'] as Map<String, dynamic>?;
+    final categoryName = category?['name'] ?? 'Uncategorized';
+
     return Row(
       children: [
         // Instructor avatar
@@ -187,16 +253,25 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
             ),
           ),
           child: ClipOval(
-            child: Image.asset(
-              'lib/assets/Takeshi.png',
-              fit: BoxFit.cover,
-            ),
+            child: trainerAvatar != null
+                ? Image.network(
+                    trainerAvatar,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Image.asset(
+                      'lib/assets/Takeshi.png',
+                      fit: BoxFit.cover,
+                    ),
+                  )
+                : Image.asset(
+                    'lib/assets/Takeshi.png',
+                    fit: BoxFit.cover,
+                  ),
           ),
         ),
         const SizedBox(width: 10),
         // Instructor name
         Text(
-          'Takeshi Mushimura',
+          trainerName,
           style: GoogleFonts.poppins(
             fontSize: 13,
             fontWeight: FontWeight.w500,
@@ -216,7 +291,7 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
             ),
           ),
           child: Text(
-            'Basic Programming',
+            categoryName,
             style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w500,
@@ -230,6 +305,17 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
 
   /// Total price label + Buy Course button
   Widget _buildPriceSection() {
+    final price = courseData?['price'];
+    final isFree = courseData?['isFree'] == true;
+    
+    String priceDisplay = 'Free';
+    if (!isFree && price != null) {
+      final priceNum = (price as num).toDouble();
+      if (priceNum > 0) {
+        priceDisplay = 'Rp${priceNum.toStringAsFixed(0)}';
+      }
+    }
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -247,7 +333,7 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
             ),
             const SizedBox(height: 2),
             Text(
-              'Rp67.000',
+              priceDisplay,
               style: GoogleFonts.poppins(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
@@ -259,9 +345,7 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
         const Spacer(),
         // Buy Course button
         ElevatedButton(
-          onPressed: () {
-            // TODO: Handle purchase
-          },
+          onPressed: isEnrolling ? null : _enrollCourse,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF6B58E6),
             foregroundColor: Colors.white,
@@ -272,13 +356,19 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
             elevation: 4,
             shadowColor: const Color(0xFF6B58E6).withValues(alpha: 0.35),
           ),
-          child: Text(
-            'Buy Course',
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+          child: isEnrolling 
+            ? const SizedBox(
+                width: 20, 
+                height: 20, 
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+              )
+            : Text(
+              'Buy Course',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
         ),
       ],
     );
@@ -286,6 +376,15 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
 
   /// Published and Enrolled stats in a soft card
   Widget _buildStatsCard() {
+    final createdAtStr = courseData?['createdAt'];
+    String publishedDate = 'Unknown';
+    if (createdAtStr != null && createdAtStr.length >= 10) {
+      publishedDate = createdAtStr.substring(0, 10);
+    }
+
+    final enrollments = courseData?['enrollments'] as List?;
+    final enrolledCount = enrollments?.length ?? 0;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       decoration: BoxDecoration(
@@ -316,26 +415,30 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Published',
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF1A1A2E),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Published',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF1A1A2E),
+                        ),
                       ),
-                    ),
-                    Text(
-                      '6 July 8767',
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w400,
-                        color: const Color(0xFF8A8A9A),
+                      Text(
+                        publishedDate,
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFF8A8A9A),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -377,7 +480,7 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
                       ),
                     ),
                     Text(
-                      '676,767 Peoples',
+                      '$enrolledCount Peoples',
                       style: GoogleFonts.poppins(
                         fontSize: 11,
                         fontWeight: FontWeight.w400,
@@ -396,6 +499,7 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
 
   /// Course description section
   Widget _buildDescriptionSection() {
+    final description = courseData?['description'] ?? 'No description available.';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -409,7 +513,7 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
         ),
         const SizedBox(height: 10),
         Text(
-          'Basic Python for Beginner is an introductory course designed for people who are new to programming. In this course, students will learn the fundamentals of Python, including variables, data types, conditions, loops, functions, and simple problem-solving techniques. The course uses easy-to-understand examples and hands-on practice to help learners build a strong foundation in coding and prepare for more advanced programming topics.',
+          description,
           style: GoogleFonts.poppins(
             fontSize: 13,
             fontWeight: FontWeight.w400,

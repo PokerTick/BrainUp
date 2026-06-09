@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:brainup/ui/bottomnavigation.dart';
 import 'package:brainup/services/api_service.dart';
+import 'package:brainup/pages/course/CoursePurchase.dart';
 
 // ─── Data Model ──────────────────────────────────────────────────────────────
 
@@ -256,12 +257,21 @@ class _CourseCard extends StatelessWidget {
       bottomRight: isLast ? const Radius.circular(16) : Radius.zero,
     );
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: radius,
-      ),
-      child: Column(
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Coursepurchase(courseId: course.id),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: radius,
+        ),
+        child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -322,6 +332,7 @@ class _CourseCard extends StatelessWidget {
             ),
         ],
       ),
+    ),
     );
   }
 }
