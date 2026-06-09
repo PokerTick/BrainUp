@@ -6,7 +6,12 @@ import '../ui/bottomnavigation.dart';
 import 'search_results_page.dart';
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key});
+  const SearchPage({
+    super.key,
+    this.openFilterOnLoad = false,
+  });
+
+  final bool openFilterOnLoad;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -44,6 +49,12 @@ class _SearchPageState extends State<SearchPage> {
     _loadRecentSearches();
     _loadCategories();
     _searchController.addListener(_onSearchChanged);
+    
+    if (widget.openFilterOnLoad) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showFilterSheet();
+      });
+    }
   }
 
   @override

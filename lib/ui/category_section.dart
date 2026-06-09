@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
+import '../pages/search_page.dart';
 
 // Icon + color mapping berdasarkan nama kategori dari API
 const _categoryMeta = {
@@ -76,7 +77,14 @@ class _CategorySectionState extends State<CategorySection> {
                   color: const Color(0xFF2D2D3A),
                 ),
               ),
-              _SeeMoreButton(onTap: () {}),
+              _SeeMoreButton(onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SearchPage(openFilterOnLoad: true),
+                  ),
+                );
+              }),
             ],
           ),
           const SizedBox(height: 16),

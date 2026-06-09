@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../pages/course/CourseNotPurchase.dart';
+import '../pages/search_results_page.dart';
 
 class CourseSection extends StatefulWidget {
   const CourseSection({super.key});
@@ -49,7 +50,21 @@ class _CourseSectionState extends State<CourseSection> {
                   color: const Color(0xFF2D2D3A),
                 ),
               ),
-              _SeeMoreButton(onTap: () {}),
+              _SeeMoreButton(onTap: () async {
+                // Fetch more courses when 'See More' is pressed to show all
+                final allCourses = await ApiService.getCourses(limit: 100);
+                if (context.mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SearchResultsPage(
+                        query: '',
+                        results: allCourses,
+                      ),
+                    ),
+                  );
+                }
+              }),
             ],
           ),
           const SizedBox(height: 16),
