@@ -120,6 +120,12 @@ class _SearchPageState extends State<SearchPage> {
           builder: (_) => SearchResultsPage(
             query: trimmed,
             results: courses,
+            categories: _categories,
+            initialCategoryId: _selectedCategoryId,
+            initialIsFree: _isFree,
+            initialMinPrice: _minPrice,
+            initialMaxPrice: _maxPrice,
+            maxPriceLimit: _kMaxPrice,
           ),
         ),
       );
@@ -167,7 +173,7 @@ class _SearchPageState extends State<SearchPage> {
       barrierColor: Colors.black.withValues(alpha: 0.28),
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => _FilterSheet(
+      builder: (ctx) => CourseFilterSheet(
         categories: _categories,
         initialCategoryId: _selectedCategoryId,
         initialIsFree: _isFree,
@@ -317,16 +323,18 @@ class _SearchPageState extends State<SearchPage> {
                     ),
                   ),
                   suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: Icon(Icons.close_rounded,
-                              color: _textGray, size: 20),
-                          onPressed: () {
+                      ? GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
                             _searchController.clear();
-                            setState(() {
-
-                            });
+                            setState(() {});
                             _focusNode.requestFocus();
                           },
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Icon(Icons.close_rounded,
+                                color: _textGray, size: 20),
+                          ),
                         )
                       : null,
                   border: InputBorder.none,
@@ -343,33 +351,23 @@ class _SearchPageState extends State<SearchPage> {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
+              SizedBox(
                 width: 48,
                 height: 48,
-                decoration: BoxDecoration(
+                child: Material(
                   color: _hasActiveFilters ? _primaryPurple : Colors.white,
                   borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _primaryPurple.withValues(
-                          alpha: _hasActiveFilters ? 0.3 : 0.08),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(14),
+                  elevation: 0,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(14),
-                    onTap: _showFilterSheet,
+                    onTap: () {
+                      FocusScope.of(context).unfocus();
+                      Future.microtask(_showFilterSheet);
+                    },
                     child: Center(
                       child: Icon(
                         Icons.tune_rounded,
-                        color:
-                            _hasActiveFilters ? Colors.white : _primaryPurple,
+                        color: _hasActiveFilters ? Colors.white : _primaryPurple,
                         size: 22,
                       ),
                     ),
@@ -380,13 +378,15 @@ class _SearchPageState extends State<SearchPage> {
                 Positioned(
                   top: -4,
                   right: -4,
-                  child: Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFF5E5E),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: _bgColor, width: 2),
+                  child: IgnorePointer(
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF5E5E),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: _bgColor, width: 2),
+                      ),
                     ),
                   ),
                 ),
@@ -480,8 +480,8 @@ class _SearchPageState extends State<SearchPage> {
 }
 
 // ─── Filter Bottom Sheet ───────────────────────────────────────────────────
-class _FilterSheet extends StatefulWidget {
-  const _FilterSheet({
+class CourseFilterSheet extends StatefulWidget {
+  const CourseFilterSheet({
     required this.categories,
     required this.initialCategoryId,
     required this.initialIsFree,
@@ -501,10 +501,10 @@ class _FilterSheet extends StatefulWidget {
       int? categoryId, bool? isFree, double minPrice, double maxPrice) onApply;
 
   @override
-  State<_FilterSheet> createState() => _FilterSheetState();
+  State<CourseFilterSheet> createState() => _CourseFilterSheetState();
 }
 
-class _FilterSheetState extends State<_FilterSheet> {
+class _CourseFilterSheetState extends State<CourseFilterSheet> {
   static const Color _purple = Color(0xFF5E4AB3);
   static const Color _lightPurple = Color(0xFFEDE9FF);
   static const Color _bgChip = Color(0xFFF5F3FF);
