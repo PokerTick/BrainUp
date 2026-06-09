@@ -6,6 +6,7 @@ import 'user_management_page.dart';
 import 'trainer_requests_page.dart';
 import 'course_management_page.dart';
 import 'order_management_page.dart';
+import 'category_management_page.dart';
 
 class AdminShell extends StatefulWidget {
   const AdminShell({super.key});
@@ -23,6 +24,7 @@ class _AdminShellState extends State<AdminShell> {
     const TrainerRequestsPage(),
     const CourseManagementPage(),
     const OrderManagementPage(),
+    const CategoryManagementPage(),
   ];
 
   Future<void> _handleLogout() async {
@@ -73,6 +75,7 @@ class _AdminShellState extends State<AdminShell> {
                       _buildNavItem(2, Icons.how_to_reg_outlined, 'Trainer Requests'),
                       _buildNavItem(3, Icons.menu_book_outlined, 'Courses'),
                       _buildNavItem(4, Icons.receipt_long_outlined, 'Orders'),
+                      _buildNavItem(5, Icons.category_outlined, 'Categories'),
                     ],
                   ),
                 ),

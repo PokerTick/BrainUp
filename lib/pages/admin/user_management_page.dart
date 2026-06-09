@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/admin_api_service.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 
 class UserManagementPage extends StatefulWidget {
   const UserManagementPage({super.key});
@@ -47,6 +48,28 @@ class _UserManagementPageState extends State<UserManagementPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to update role')),
         );
+      }
+    }
+  }
+
+  Future<void> _updateAvatar(int userId) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      setState(() => _isLoading = true);
+      final success = await AdminApiService.updateUserAvatar(userId, bytes, pickedFile.name);
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Avatar updated successfully')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to update avatar')),
+          );
+        }
+        _loadUsers();
       }
     }
   }
@@ -98,6 +121,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         child: DataTable(
                           columns: const [
                             DataColumn(label: Text('ID')),
+                            DataColumn(label: Text('Avatar')),
                             DataColumn(label: Text('Name')),
                             DataColumn(label: Text('Email')),
                             DataColumn(label: Text('Registered')),
@@ -109,6 +133,17 @@ class _UserManagementPageState extends State<UserManagementPage> {
 
                             return DataRow(cells: [
                               DataCell(Text('${user['id']}')),
+                              DataCell(
+                                GestureDetector(
+                                  onTap: () => _updateAvatar(user['id']),
+                                  child: CircleAvatar(
+                                    radius: 18,
+                                    backgroundColor: const Color(0xFFF0EDFF),
+                                    backgroundImage: user['avatar'] != null ? NetworkImage(user['avatar']) : null,
+                                    child: user['avatar'] == null ? const Icon(Icons.person, size: 20, color: Color(0xFF6B58E6)) : null,
+                                  ),
+                                ),
+                              ),
                               DataCell(Text(user['name'] ?? '-')),
                               DataCell(Text(user['email'] ?? '-')),
                               DataCell(Text(dateStr)),

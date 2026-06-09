@@ -120,6 +120,30 @@ class AdminApiService {
     return false;
   }
 
+  static Future<bool> updateUserAvatar(int userId, List<int> bytes, String filename) async {
+    try {
+      final token = await ApiService.getAccessToken();
+      final uri = Uri.parse('$baseUrl/users/$userId/avatar');
+      final request = http.MultipartRequest('POST', uri);
+      
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+
+      request.files.add(http.MultipartFile.fromBytes(
+        'file', // Assuming the field name is 'file' or 'avatar'
+        bytes,
+        filename: filename,
+      ));
+
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 20));
+      return streamedResponse.statusCode == 200 || streamedResponse.statusCode == 201;
+    } catch (e) {
+      print('--- updateUserAvatar ERROR: $e');
+    }
+    return false;
+  }
+
   // ─── Trainer Requests ─────────────────────────────────────────────────────
 
   static Future<List<Map<String, dynamic>>> getTrainerRequests() async {
@@ -260,6 +284,62 @@ class AdminApiService {
           )
           .timeout(const Duration(seconds: 10));
       return response.statusCode == 200;
+    } catch (_) {}
+    return false;
+  }
+
+  // ─── Categories ───────────────────────────────────────────────────────────
+
+  static Future<List<Map<String, dynamic>>> getAllCategories() async {
+    try {
+      final headers = await _authHeaders();
+      final response = await http
+          .get(Uri.parse('$baseUrl/categories'), headers: headers)
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body is List) {
+          return body.cast<Map<String, dynamic>>();
+        } else if (body is Map) {
+          dynamic dataField = body['data'];
+          if (dataField is List) {
+            return dataField.cast<Map<String, dynamic>>();
+          } else if (dataField is Map) {
+            final List list = dataField['data'] ?? dataField['items'] ?? [];
+            return list.cast<Map<String, dynamic>>();
+          }
+        }
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  static Future<bool> createCategory(String name) async {
+    try {
+      final headers = await _authHeaders();
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/categories'),
+            headers: headers,
+            body: jsonEncode({'name': name}),
+          )
+          .timeout(const Duration(seconds: 10));
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (_) {}
+    return false;
+  }
+
+  static Future<bool> deleteCategory(int id) async {
+    try {
+      final headers = await _authHeaders();
+      final response = await http
+          .delete(
+            Uri.parse('$baseUrl/categories/$id'),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 10));
+      return response.statusCode == 200 || response.statusCode == 204;
     } catch (_) {}
     return false;
   }
