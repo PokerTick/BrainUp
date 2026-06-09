@@ -1,16 +1,73 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../ui/bottomnavigation.dart';
+import '../services/api_service.dart';
 import 'trainer/student_management_page.dart';
 import 'trainer/analytics_page.dart';
 import 'trainer/messages_page.dart';
 import 'trainer/new_course_page.dart';
 
-class TrainerDashboard extends StatelessWidget {
+class TrainerDashboard extends StatefulWidget {
   const TrainerDashboard({super.key});
 
   @override
+  State<TrainerDashboard> createState() => _TrainerDashboardState();
+}
+
+class _TrainerDashboardState extends State<TrainerDashboard> {
+  bool _isLoading = true;
+  String _trainerName = 'Takeshi';
+  String? _avatarUrl;
+  
+  Map<String, dynamic> _stats = {
+    'activeCourses': 0,
+    'totalStudents': 0,
+    'avgRating': 0.0,
+    'revenue': 'Rp 0',
+  };
+  
+  List<Map<String, dynamic>> _courses = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final profile = await ApiService.getUserProfile();
+      final stats = await ApiService.getTrainerStats();
+      final courses = await ApiService.getTrainerCourses();
+
+      if (mounted) {
+        setState(() {
+          _trainerName = profile?['name'] ?? 'Takeshi';
+          _avatarUrl = profile?['avatarUrl'] ?? profile?['avatar'];
+          _stats = stats;
+          _courses = courses;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF9F9FB),
+        bottomNavigationBar: AppBottomNavigationBar(initialIndex: 0),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFF7A5CFF))),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9FB),
       bottomNavigationBar: const AppBottomNavigationBar(initialIndex: 0),
@@ -70,8 +127,8 @@ class TrainerDashboard extends StatelessWidget {
                     children: [
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
+                        children: [
+                          const Text(
                             'Hello Trainer,',
                             style: TextStyle(
                               fontSize: 16,
@@ -79,10 +136,10 @@ class TrainerDashboard extends StatelessWidget {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
-                            'Takeshi!',
-                            style: TextStyle(
+                            '$_trainerName!',
+                            style: const TextStyle(
                               fontSize: 28,
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -96,8 +153,10 @@ class TrainerDashboard extends StatelessWidget {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(color: const Color(0xFFFFB6D9), width: 3),
-                          image: const DecorationImage(
-                            image: AssetImage('lib/assets/Takeshi.png'),
+                          image: DecorationImage(
+                            image: _avatarUrl != null
+                                ? NetworkImage(_avatarUrl!) as ImageProvider
+                                : const AssetImage('lib/assets/Takeshi.png'),
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -109,11 +168,17 @@ class TrainerDashboard extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: _buildStatBox(title: '12', subtitle: 'Active courses'),
+                        child: _buildStatBox(
+                          title: '${_stats['activeCourses'] ?? 0}', 
+                          subtitle: 'Active courses',
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: _buildStatBox(title: '3.4k', subtitle: 'Total students'),
+                        child: _buildStatBox(
+                          title: '${_stats['totalStudents'] ?? 0}', 
+                          subtitle: 'Total students',
+                        ),
                       ),
                     ],
                   ),
@@ -121,12 +186,15 @@ class TrainerDashboard extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: _buildStatBox(title: '4.8 ★', subtitle: 'Avg rating'),
+                        child: _buildStatBox(
+                          title: '${_stats['avgRating'] ?? 0.0} ★', 
+                          subtitle: 'Avg rating',
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: _buildStatBox(
-                          title: 'Rp 12M',
+                          title: '${_stats['revenue'] ?? 'Rp 0'}',
                           subtitle: 'Revenue (MTD)',
                         ),
                       ),
@@ -313,27 +381,18 @@ class TrainerDashboard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _buildCourseCard(
-            title: 'React Fundamentals',
-            students: 1240,
-            rating: 4.9,
-            status: 'Live',
-            progress: 0.8,
-          ),
-          _buildCourseCard(
-            title: 'JavaScript Advanced',
-            students: 680,
-            rating: 4.7,
-            status: 'Live',
-            progress: 0.6,
-          ),
-          _buildCourseCard(
-            title: 'SQL for Beginners',
-            students: 0,
-            rating: 0.0,
-            status: 'Draft',
-            progress: 0.0,
-          ),
+          if (_courses.isEmpty)
+            const Text('No courses found', style: TextStyle(color: Colors.grey))
+          else
+            ..._courses.map((course) {
+              return _buildCourseCard(
+                title: course['title'] ?? 'Untitled',
+                students: course['students'] ?? 0,
+                rating: (course['rating'] ?? 0.0).toDouble(),
+                status: course['status'] ?? 'Draft',
+                progress: (course['progress'] ?? 0.0).toDouble(),
+              );
+            }),
         ],
       ),
     );

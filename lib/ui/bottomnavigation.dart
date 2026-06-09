@@ -4,6 +4,8 @@ import 'package:brainup/pages/profile/profile_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../pages/homepages.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../pages/trainer_dashboard.dart';
 
 class AppBottomNavigationBar extends StatefulWidget {
   final int initialIndex;
@@ -82,16 +84,29 @@ class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
                           setState(() => currentIndex = index);
 
                           // Wait for the bump animation before navigating
-                          Future.delayed(const Duration(milliseconds: 300), () {
+                          Future.delayed(const Duration(milliseconds: 300), () async {
                             if (!context.mounted) return;
 
                             if (index == 0) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const Homepages(),
-                                ),
-                              );
+                              final prefs = await SharedPreferences.getInstance();
+                              final role = prefs.getString('userRole') ?? 'USER';
+                              if (!context.mounted) return;
+
+                              if (role.toUpperCase() == 'TRAINER') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const TrainerDashboard(),
+                                  ),
+                                );
+                              } else {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const Homepages(),
+                                  ),
+                                );
+                              }
                             } else if (index == 1) {
                               Navigator.push(
                                 context,

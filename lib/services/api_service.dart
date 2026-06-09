@@ -91,6 +91,69 @@ class ApiService {
     return null;
   }
 
+  /// POST /auth/refresh
+  static Future<bool> refreshToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final rToken = prefs.getString('refresh_token');
+      if (rToken == null) return false;
+
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/refresh'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $rToken',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final authData = data['data'];
+        if (authData != null) {
+          await saveTokens(
+            accessToken: authData['accessToken'] ?? '',
+            refreshToken: authData['refreshToken'] ?? '',
+          );
+          return true;
+        }
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  /// POST /auth/logout
+  static Future<bool> logout() async {
+    try {
+      final token = await getAccessToken();
+      if (token == null) {
+        await clearTokens();
+        return false;
+      }
+
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/logout'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+
+      await clearTokens();
+      try {
+        await GoogleSignIn.instance.signOut();
+      } catch (_) {}
+
+      return response.statusCode == 200;
+    } catch (_) {
+      await clearTokens();
+      return false;
+    }
+  }
+
   // ─── Gamification & User ──────────────────────────────────────────────────
 
   /// GET /users/profile  (requires auth)
@@ -423,5 +486,71 @@ class ApiService {
     } catch (e) {
       return {'success': false, 'message': 'Google sign-in failed: ${e.toString()}'};
     }
+  }
+
+  // ─── Trainer Dashboard (Mock Fallbacks) ───────────────────────────────────
+
+  /// GET /trainer/stats (Mocked)
+  static Future<Map<String, dynamic>> getTrainerStats() async {
+    try {
+      final headers = await _authHeaders();
+      final response = await http
+          .get(Uri.parse('$baseUrl/trainer/stats'), headers: headers)
+          .timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['data'] as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    
+    // Fallback Mock Data
+    return {
+      'activeCourses': 12,
+      'totalStudents': 3400,
+      'avgRating': 4.8,
+      'revenue': 'Rp 12M',
+    };
+  }
+
+  /// GET /trainer/courses (Mocked)
+  static Future<List<Map<String, dynamic>>> getTrainerCourses() async {
+    try {
+      final headers = await _authHeaders();
+      final response = await http
+          .get(Uri.parse('$baseUrl/trainer/courses'), headers: headers)
+          .timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final List list = body['data'] ?? [];
+        return list.cast<Map<String, dynamic>>();
+      }
+    } catch (_) {}
+    
+    // Fallback Mock Data
+    return [
+      {
+        'title': 'React Fundamentals',
+        'students': 1240,
+        'rating': 4.9,
+        'status': 'Live',
+        'progress': 0.8,
+      },
+      {
+        'title': 'JavaScript Advanced',
+        'students': 680,
+        'rating': 4.7,
+        'status': 'Live',
+        'progress': 0.6,
+      },
+      {
+        'title': 'SQL for Beginners',
+        'students': 0,
+        'rating': 0.0,
+        'status': 'Draft',
+        'progress': 0.0,
+      },
+    ];
   }
 }
