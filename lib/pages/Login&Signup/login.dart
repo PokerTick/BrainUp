@@ -54,11 +54,19 @@ class _LoginState extends State<Login> {
         refreshToken: result['refreshToken'] as String? ?? '',
       );
 
-      // Navigate to home, clearing the entire back stack
+      final profile = await ApiService.getUserProfile();
+      final role = profile?['role'] as String?;
+
+      // Navigate to home or dashboard, clearing the entire back stack
       if (!mounted) return;
+      
+      final destination = (role?.toUpperCase() == 'TRAINER')
+          ? const TrainerDashboard()
+          : const Homepages();
+
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const Homepages()),
+        MaterialPageRoute(builder: (_) => destination),
         (route) => false,
       );
     } else {
@@ -80,9 +88,14 @@ class _LoginState extends State<Login> {
     if (!mounted) return;
 
     if (result['success'] == true) {
+      final role = result['role'] as String?;
+      final destination = (role?.toUpperCase() == 'TRAINER')
+          ? const TrainerDashboard()
+          : const Homepages();
+
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const Homepages()),
+        MaterialPageRoute(builder: (_) => destination),
         (route) => false,
       );
     } else {

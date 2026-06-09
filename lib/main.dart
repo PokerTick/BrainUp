@@ -1,5 +1,6 @@
 import 'package:brainup/pages/Login&Signup/login.dart';
 import 'package:brainup/pages/homepages.dart';
+import 'package:brainup/pages/trainer_dashboard.dart';
 import 'package:brainup/services/api_service.dart';
 import 'package:flutter/material.dart';
 
@@ -50,9 +51,19 @@ class _SplashRouterState extends State<_SplashRouter> {
     final token = await ApiService.getAccessToken();
     if (!mounted) return;
 
-    final destination =
-        token != null ? const Homepages() : const Login();
+    Widget destination = const Login();
 
+    if (token != null) {
+      final profile = await ApiService.getUserProfile();
+      final role = profile?['role'] as String?;
+      if (role?.toUpperCase() == 'TRAINER') {
+        destination = const TrainerDashboard();
+      } else {
+        destination = const Homepages();
+      }
+    }
+
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => destination),

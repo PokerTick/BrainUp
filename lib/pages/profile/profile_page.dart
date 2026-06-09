@@ -24,6 +24,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String _userName = 'User';
   String _userEmail = 'user@example.com';
   String? _avatarUrl;
+  String _userRole = 'USER';
 
   @override
   void initState() {
@@ -42,6 +43,7 @@ class _ProfilePageState extends State<ProfilePage> {
         _userName = profile['name'] ?? 'User';
         _userEmail = profile['email'] ?? 'user@example.com';
         _avatarUrl = avatar;
+        _userRole = profile['role'] ?? 'USER';
       });
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('userName', _userName);
@@ -49,6 +51,7 @@ class _ProfilePageState extends State<ProfilePage> {
       if (avatar != null) {
         await prefs.setString('userAvatar', avatar);
       }
+      await prefs.setString('userRole', _userRole);
     } else {
       // Fallback if network fails, try shared preferences
       final prefs = await SharedPreferences.getInstance();
@@ -56,6 +59,7 @@ class _ProfilePageState extends State<ProfilePage> {
         _userName = prefs.getString('userName') ?? 'User';
         _userEmail = prefs.getString('userEmail') ?? 'user@example.com';
         _avatarUrl = prefs.getString('userAvatar');
+        _userRole = prefs.getString('userRole') ?? 'USER';
       });
     }
   }
@@ -127,9 +131,10 @@ class _ProfilePageState extends State<ProfilePage> {
               const SizedBox(height: 20),
 
               // --- Join as Trainer Banner ---
-              _buildTrainerBanner(),
-
-              const SizedBox(height: 24),
+              if (_userRole.toUpperCase() != 'TRAINER') ...[
+                _buildTrainerBanner(),
+                const SizedBox(height: 24),
+              ],
 
               // --- Quick Actions Grid ---
               _buildQuickActionsGrid(),
