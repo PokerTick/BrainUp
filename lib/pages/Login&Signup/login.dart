@@ -3,8 +3,7 @@ import 'package:brainup/pages/homepages.dart';
 import 'package:brainup/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import '../../services/api_service.dart';
-import '../homepages.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../trainer_dashboard.dart';
 
 class Login extends StatefulWidget {
@@ -56,6 +55,11 @@ class _LoginState extends State<Login> {
 
       final profile = await ApiService.getUserProfile();
       final role = profile?['role'] as String?;
+
+      final prefs = await SharedPreferences.getInstance();
+      if (role != null) {
+        await prefs.setString('userRole', role);
+      }
 
       // Navigate to home or dashboard, clearing the entire back stack
       if (!mounted) return;

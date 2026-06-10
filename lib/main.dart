@@ -3,6 +3,7 @@ import 'package:brainup/pages/homepages.dart';
 import 'package:brainup/pages/trainer_dashboard.dart';
 import 'package:brainup/services/api_service.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Global route observer — widgets can subscribe to know when their route
 /// becomes active again (e.g., user presses Back from a child route).
@@ -56,6 +57,12 @@ class _SplashRouterState extends State<_SplashRouter> {
     if (token != null) {
       final profile = await ApiService.getUserProfile();
       final role = profile?['role'] as String?;
+      
+      if (role != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('userRole', role);
+      }
+
       if (role?.toUpperCase() == 'TRAINER') {
         destination = const TrainerDashboard();
       } else {

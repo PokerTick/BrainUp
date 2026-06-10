@@ -2,6 +2,7 @@ import 'package:brainup/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../ui/bottomnavigation.dart';
 import '../Login&Signup/login.dart';
 import 'wishlist_page.dart';
@@ -11,7 +12,6 @@ import 'purchase_history_page.dart';
 import 'voucher_list_page.dart';
 import 'notification_setting_page.dart';
 import 'privacy_security_page.dart';
-import 'package:brainup/pages/my_courses_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -335,31 +335,6 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _QuickActionItem(
-                  icon: Icons.history,
-                  label: 'Watch\nHistory',
-                  onTap: () {},
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _QuickActionItem(
-                  icon: Icons.menu_book_outlined,
-                  label: 'My Courses',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const MyCoursesPage()),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -428,7 +403,23 @@ class _ProfilePageState extends State<ProfilePage> {
           _SettingsTile(
             icon: Icons.help_outline,
             title: 'Help & Support',
-            onTap: () {},
+            onTap: () async {
+              final url = Uri.parse('https://wa.me/6283184686878?text=Halo%20Admin%20BrainUp,%20saya%20butuh%20bantuan');
+              try {
+                final success = await launchUrl(url, mode: LaunchMode.inAppBrowserView);
+                if (!success && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Could not open WhatsApp website')),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Could not open WhatsApp')),
+                  );
+                }
+              }
+            },
           ),
         ],
       ),

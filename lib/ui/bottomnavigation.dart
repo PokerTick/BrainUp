@@ -18,18 +18,30 @@ class AppBottomNavigationBar extends StatefulWidget {
 
 class _AppBottomNavigationBarState extends State<AppBottomNavigationBar> {
   late int currentIndex;
+  bool _isTrainer = false;
 
   @override
   void initState() {
     super.initState();
     currentIndex = widget.initialIndex;
+    _checkRole();
   }
 
-  static const _items = [
-    _NavItemData(label: 'Home', assetPath: 'lib/assets/Home.svg'),
-    _NavItemData(label: 'Search', assetPath: 'lib/assets/Search.svg'),
-    _NavItemData(label: 'My Courses', assetPath: 'lib/assets/Course.svg'),
-    _NavItemData(label: 'Profile', assetPath: 'lib/assets/Profile.svg'),
+  Future<void> _checkRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    final role = prefs.getString('userRole') ?? 'USER';
+    if (role.toUpperCase() == 'TRAINER' && mounted) {
+      setState(() {
+        _isTrainer = true;
+      });
+    }
+  }
+
+  List<_NavItemData> get _items => [
+    _NavItemData(label: _isTrainer ? 'Dashboard' : 'Home', assetPath: 'lib/assets/Home.svg'),
+    const _NavItemData(label: 'Search', assetPath: 'lib/assets/Search.svg'),
+    const _NavItemData(label: 'My Courses', assetPath: 'lib/assets/Course.svg'),
+    const _NavItemData(label: 'Profile', assetPath: 'lib/assets/Profile.svg'),
   ];
 
   @override

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../ui/bottomnavigation.dart';
 import '../services/api_service.dart';
-import 'trainer/student_management_page.dart';
+import '../services/trainer_api_service.dart';
 import 'trainer/analytics_page.dart';
-import 'trainer/messages_page.dart';
 import 'trainer/new_course_page.dart';
+import 'trainer/manage_course_page.dart';
 
 class TrainerDashboard extends StatefulWidget {
   const TrainerDashboard({super.key});
@@ -39,15 +39,23 @@ class _TrainerDashboardState extends State<TrainerDashboard> {
 
     try {
       final profile = await ApiService.getUserProfile();
-      final stats = await ApiService.getTrainerStats();
-      final courses = await ApiService.getTrainerCourses();
+      final dashboardData = await TrainerApiService.getDashboardTrainer();
 
       if (mounted) {
         setState(() {
           _trainerName = profile?['name'] ?? 'Takeshi';
           _avatarUrl = profile?['avatarUrl'] ?? profile?['avatar'];
-          _stats = stats;
-          _courses = courses;
+          
+          if (dashboardData != null) {
+            _stats = {
+              'activeCourses': dashboardData['totalCourses'] ?? 0,
+              'totalStudents': dashboardData['totalStudents'] ?? 0,
+              'avgRating': 0.0,
+              'revenue': 'Rp ${dashboardData['totalRevenue'] ?? 0}',
+            };
+            _courses = List<Map<String, dynamic>>.from(dashboardData['latestCourses'] ?? []);
+          }
+          
           _isLoading = false;
         });
       }
@@ -284,32 +292,6 @@ class _TrainerDashboardState extends State<TrainerDashboard> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildQuickActionButton(
-                        icon: Icons.chat_bubble_outline_rounded,
-                        title: 'Message',
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const MessagesPage()),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildQuickActionButton(
-                        icon: Icons.people_outline_rounded,
-                        title: 'Student',
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const StudentManagementPage()),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
               ],
             );
           }),
@@ -386,6 +368,7 @@ class _TrainerDashboardState extends State<TrainerDashboard> {
           else
             ..._courses.map((course) {
               return _buildCourseCard(
+                course: course,
                 title: course['title'] ?? 'Untitled',
                 students: course['students'] ?? 0,
                 rating: (course['rating'] ?? 0.0).toDouble(),
@@ -399,6 +382,7 @@ class _TrainerDashboardState extends State<TrainerDashboard> {
   }
 
   Widget _buildCourseCard({
+    required Map<String, dynamic> course,
     required String title,
     required int students,
     required double rating,
@@ -406,20 +390,27 @@ class _TrainerDashboardState extends State<TrainerDashboard> {
     required double progress,
   }) {
     final isLive = status == 'Live';
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF7A5CFF).withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => ManageCoursePage(course: course)),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF7A5CFF).withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -516,6 +507,6 @@ class _TrainerDashboardState extends State<TrainerDashboard> {
           ),
         ],
       ),
-    );
+    ));
   }
 }

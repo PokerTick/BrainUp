@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import '../../services/api_service.dart';
 
 class TrainerSignUpPage extends StatefulWidget {
   const TrainerSignUpPage({super.key});
@@ -14,6 +16,7 @@ class _TrainerSignUpPageState extends State<TrainerSignUpPage> {
   final _portfolioController = TextEditingController();
   final _bioController = TextEditingController();
   bool _isLoading = false;
+  PlatformFile? _cvFile;
 
   @override
   void dispose() {
@@ -24,24 +27,66 @@ class _TrainerSignUpPageState extends State<TrainerSignUpPage> {
     super.dispose();
   }
 
+  Future<void> _pickCV() async {
+    final result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+      withData: true,
+    );
+
+    if (result != null) {
+      setState(() {
+        _cvFile = result.files.first;
+      });
+    }
+  }
+
   Future<void> _submitApplication() async {
     if (_formKey.currentState!.validate()) {
+      if (_cvFile == null || _cvFile!.bytes == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please upload your CV (PDF)'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
       setState(() => _isLoading = true);
 
-      // Simulate an API call
-      await Future.delayed(const Duration(seconds: 2));
+      // Call actual API
+      final errorMsg = await ApiService.submitTrainerApplication(
+        {
+          'expertise': _expertiseController.text.trim(),
+          'experience': _experienceController.text.trim(),
+          'portfolioUrl': _portfolioController.text.trim(),
+          'bio': _bioController.text.trim(),
+        },
+        _cvFile!.bytes!,
+        _cvFile!.name,
+      );
 
       if (!mounted) return;
       setState(() => _isLoading = false);
 
-      // Show success message and go back
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Application submitted successfully! We will review it shortly.'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.pop(context);
+      if (errorMsg == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Application submitted successfully! We will review it shortly.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     }
   }
 
@@ -181,6 +226,62 @@ class _TrainerSignUpPageState extends State<TrainerSignUpPage> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 16),
+
+                    // CV Upload Field
+                    const Text(
+                      'Curriculum Vitae (CV)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: Color(0xFF2B2B2F),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: _pickCV,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _cvFile == null ? Colors.transparent : const Color(0xFF6B58E6),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _cvFile == null ? Icons.upload_file : Icons.picture_as_pdf,
+                              color: _cvFile == null ? Colors.grey.shade400 : const Color(0xFF6B58E6),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _cvFile == null ? 'Upload your CV (PDF)' : _cvFile!.name,
+                                style: TextStyle(
+                                  color: _cvFile == null ? Colors.grey.shade400 : const Color(0xFF2B2B2F),
+                                  fontWeight: _cvFile == null ? FontWeight.normal : FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (_cvFile != null)
+                              IconButton(
+                                icon: const Icon(Icons.close, size: 20, color: Colors.grey),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                onPressed: () => setState(() => _cvFile = null),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 32),
 
                     // Submit Button

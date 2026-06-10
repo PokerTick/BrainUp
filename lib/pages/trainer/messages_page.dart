@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../ui/bottomnavigation.dart';
+import '../../services/trainer_api_service.dart';
 
 // ─── Data Models ─────────────────────────────────────────────────────────────
 
@@ -34,43 +35,33 @@ class MessagesPage extends StatefulWidget {
 class _MessagesPageState extends State<MessagesPage> {
   int _selectedTab = 0;
   final TextEditingController _searchController = TextEditingController();
+  bool _isLoading = true;
+  List<_Message> _messages = [];
 
   static const _tabs = ['All', 'Groups', 'Archived'];
 
-  static const _messages = [
-    _Message(
-      senderName: 'Sarah Jenkins',
-      preview: 'Can you explain the React Hook...',
-      time: '2:45 PM',
-      avatarColor: Color(0xFFFFB6D9),
-      unread: true,
-    ),
-    _Message(
-      senderName: 'Alex Rivera',
-      preview: 'I\'ve submitted the advanced cl...',
-      time: '1:30 PM',
-      avatarColor: Color(0xFF82B1FF),
-    ),
-    _Message(
-      senderName: 'Mei Lin',
-      preview: 'Hi! My students are working pretty well. Thanks!',
-      time: 'Yesterday',
-      avatarColor: Color(0xFFA5D6A7),
-    ),
-    _Message(
-      senderName: 'David Kim',
-      preview: 'Is there a weekend session for this...',
-      time: '09:34',
-      avatarColor: Color(0xFFFFCC80),
-    ),
-    _Message(
-      senderName: 'Fullstack Group B',
-      preview: 'Jordan: Just joined the class!',
-      time: '05:23',
-      avatarColor: Color(0xFFCE93D8),
-      isGroup: true,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchMessages();
+  }
+
+  Future<void> _fetchMessages() async {
+    final messagesData = await TrainerApiService.getTrainerMessages();
+    if (mounted) {
+      setState(() {
+        _messages = messagesData.map((data) => _Message(
+          senderName: data['senderName'] ?? 'Unknown',
+          preview: data['preview'] ?? '',
+          time: data['time'] ?? '',
+          avatarColor: Color(data['avatarColorValue'] ?? 0xFFCCCCCC),
+          unread: data['unread'] ?? false,
+          isGroup: data['isGroup'] ?? false,
+        )).toList();
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -101,7 +92,22 @@ class _MessagesPageState extends State<MessagesPage> {
                   const SizedBox(height: 20),
                   _buildFilterTabs(),
                   const SizedBox(height: 20),
-                  ..._messages.map((m) => _buildMessageCard(m)),
+                  if (_isLoading)
+                    const Center(
+                      child: CircularProgressIndicator(color: Color(0xFF7A5CFF)),
+                    )
+                  else if (_messages.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: Text(
+                          'No messages found.',
+                          style: TextStyle(color: Color(0xFF9C9AA5)),
+                        ),
+                      ),
+                    )
+                  else
+                    ..._messages.map((m) => _buildMessageCard(m)),
                 ],
               ),
             ),
@@ -160,12 +166,12 @@ class _MessagesPageState extends State<MessagesPage> {
                           color: Colors.white, size: 20),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
+                          const Text(
                             'Messages',
                             style: TextStyle(
                               fontSize: 20,
@@ -174,8 +180,8 @@ class _MessagesPageState extends State<MessagesPage> {
                             ),
                           ),
                           Text(
-                            '5 unread messages',
-                            style: TextStyle(
+                            '${_messages.where((m) => m.unread).length} unread messages',
+                            style: const TextStyle(
                               fontSize: 12,
                               color: Colors.white70,
                             ),

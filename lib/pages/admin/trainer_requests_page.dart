@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/admin_api_service.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class TrainerRequestsPage extends StatefulWidget {
   const TrainerRequestsPage({super.key});
@@ -51,6 +52,42 @@ class _TrainerRequestsPageState extends State<TrainerRequestsPage> {
         ),
       );
       _loadRequests();
+    }
+  }
+
+  Future<void> _downloadCV(String? url) async {
+    if (url == null || url.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: No CV file found for this request.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    final uri = Uri.parse(url);
+    try {
+      final success = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: Could not open the CV link.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error downloading CV: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -158,7 +195,7 @@ class _TrainerRequestsPageState extends State<TrainerRequestsPage> {
                               Column(
                                 children: [
                                   OutlinedButton.icon(
-                                    onPressed: () {},
+                                    onPressed: () => _downloadCV(req['cvUrl'] ?? req['cv_url']),
                                     icon: const Icon(Icons.download),
                                     label: const Text('View CV'),
                                   ),

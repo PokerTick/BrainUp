@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 class ApiService {
@@ -484,6 +485,44 @@ class ApiService {
       }
     } catch (_) {}
     return [];
+  }
+
+  // ─── Trainer Requests ─────────────────────────────────────────────────────
+
+  static Future<String?> submitTrainerApplication(
+      Map<String, String> data, List<int> cvBytes, String cvFilename) async {
+    try {
+      final token = await ApiService.getAccessToken();
+      final uri = Uri.parse('$baseUrl/trainer/request');
+      final request = http.MultipartRequest('POST', uri);
+
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+
+      // Add text fields
+      data.forEach((key, value) {
+        request.fields[key] = value;
+      });
+
+      // Add file
+      request.files.add(http.MultipartFile.fromBytes(
+        'cv', // Assuming the backend field is 'cv'
+        cvBytes,
+        filename: cvFilename,
+        contentType: MediaType('application', 'pdf'),
+      ));
+
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 20));
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return null; // success
+      }
+      return 'Failed (${response.statusCode}): ${response.body}';
+    } catch (e) {
+      return 'Error: $e';
+    }
   }
 
   // ─── Google Sign-In ───────────────────────────────────────────────────────

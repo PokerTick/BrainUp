@@ -35,8 +35,8 @@ class _UserManagementPageState extends State<UserManagementPage> {
   }
 
   Future<void> _updateRole(int userId, String newRole) async {
-    final success = await AdminApiService.updateUserRole(userId, newRole);
-    if (success) {
+    final errorMsg = await AdminApiService.updateUserRole(userId, newRole);
+    if (errorMsg == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('User role updated successfully')),
@@ -46,7 +46,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to update role')),
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
         );
       }
     }

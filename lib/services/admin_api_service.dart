@@ -103,7 +103,7 @@ class AdminApiService {
     return [];
   }
 
-  static Future<bool> updateUserRole(int userId, String newRole) async {
+  static Future<String?> updateUserRole(int userId, String newRole) async {
     try {
       final headers = await _authHeaders();
       // Updated endpoint: /users/:id
@@ -115,9 +115,13 @@ class AdminApiService {
           )
           .timeout(const Duration(seconds: 10));
 
-      return response.statusCode == 200;
-    } catch (_) {}
-    return false;
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return null; // success
+      }
+      return 'Failed (${response.statusCode}): ${response.body}';
+    } catch (e) {
+      return 'Error: $e';
+    }
   }
 
   static Future<bool> updateUserAvatar(int userId, List<int> bytes, String filename) async {

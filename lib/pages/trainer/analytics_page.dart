@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../ui/bottomnavigation.dart';
+import '../../services/trainer_api_service.dart';
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
@@ -14,11 +15,38 @@ class AnalyticsPage extends StatefulWidget {
 
 class _AnalyticsPageState extends State<AnalyticsPage> {
   int _selectedPeriod = 1; // 0=Week, 1=Month, 2=Year
+  bool _isLoading = true;
+  Map<String, dynamic>? _salesData;
 
   static const _periods = ['Week', 'Month', 'Year'];
 
   @override
+  void initState() {
+    super.initState();
+    _loadSalesData();
+  }
+
+  Future<void> _loadSalesData() async {
+    setState(() => _isLoading = true);
+    final data = await TrainerApiService.getTrainerSales();
+    if (mounted) {
+      setState(() {
+        _salesData = data;
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF9F9FB),
+        bottomNavigationBar: AppBottomNavigationBar(initialIndex: 0),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFF7A5CFF))),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9FB),
       bottomNavigationBar: const AppBottomNavigationBar(initialIndex: 0),
@@ -156,12 +184,15 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   }
 
   Widget _buildStatCards() {
+    final revenue = _salesData?['totalRevenue']?.toString() ?? '0';
+    final students = _salesData?['totalStudents']?.toString() ?? '0';
+
     return Row(
       children: [
         Expanded(
           child: _buildStatCard(
             label: 'Total Revenue',
-            value: '1,240',
+            value: revenue,
             suffix: 'Rp',
             icon: Icons.monetization_on_rounded,
           ),
@@ -169,10 +200,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
         const SizedBox(width: 12),
         Expanded(
           child: _buildStatCard(
-            label: 'Completion Rate',
-            value: '84.2',
-            suffix: '%',
-            icon: Icons.check_circle_rounded,
+            label: 'Total Students',
+            value: students,
+            suffix: 'Users',
+            icon: Icons.people_alt_rounded,
           ),
         ),
       ],
@@ -247,6 +278,9 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   }
 
   Widget _buildRevenueTrends() {
+    final List<double> trends = (_salesData?['revenueTrends'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList() ?? [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+    final List<String> labels = (_salesData?['revenueLabels'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -271,10 +305,9 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
               color: Color(0xFF1E1B2E),
             ),
           ),
-          const SizedBox(height: 4),
-          const Text(
-            'MTD Earnings: Rp 12M',
-            style: TextStyle(
+          Text(
+            'MTD Earnings: Rp ${_salesData?['totalRevenue'] ?? 0}',
+            style: const TextStyle(
               fontSize: 12,
               color: Color(0xFF9C9AA5),
             ),
@@ -284,13 +317,13 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
             height: 140,
             child: CustomPaint(
               size: const Size(double.infinity, 140),
-              painter: _LineChartPainter(),
+              painter: _LineChartPainter(points: trends),
             ),
           ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+            children: labels
                 .map((d) => Text(d,
                     style: const TextStyle(
                         fontSize: 10, color: Color(0xFF9C9AA5))))
@@ -300,8 +333,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       ),
     );
   }
-
   Widget _buildStudentEnrollment() {
+    final List<double> trends = (_salesData?['enrollmentTrends'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList() ?? [0.0, 0.0, 0.0, 0.0, 0.0];
+    final List<String> labels = (_salesData?['enrollmentLabels'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? ['Jan', 'Feb', 'Mar', 'Apr', 'May'];
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -331,13 +366,13 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
             height: 120,
             child: CustomPaint(
               size: const Size(double.infinity, 120),
-              painter: _BarChartPainter(),
+              painter: _BarChartPainter(values: trends),
             ),
           ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: ['Jan', 'Feb', 'Mar', 'Apr', 'May']
+            children: labels
                 .map((m) => Text(m,
                     style: const TextStyle(
                         fontSize: 10, color: Color(0xFF9C9AA5))))
@@ -367,8 +402,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                 ),
               ),
               const SizedBox(width: 6),
-              const Text('3,443 Total',
-                  style: TextStyle(fontSize: 11, color: Color(0xFF9C9AA5))),
+              Text('${_salesData?['totalStudents'] ?? 0} Total',
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF9C9AA5))),
             ],
           ),
         ],
@@ -377,6 +412,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   }
 
   Widget _buildCoursePerformance() {
+    final courses = _salesData?['courses'] as List<dynamic>? ?? [];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -389,20 +426,17 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           ),
         ),
         const SizedBox(height: 16),
-        _buildPerformanceCard(
-          title: 'React Fundamentals',
-          students: '1,240 Students',
-          rating: 4.9,
-          tag: 'Top',
-          tagColor: const Color(0xFF4CAF50),
-        ),
-        _buildPerformanceCard(
-          title: 'JavaScript Advanced',
-          students: '860 Students',
-          rating: 4.7,
-          tag: 'Rising',
-          tagColor: const Color(0xFF7A5CFF),
-        ),
+        if (courses.isEmpty)
+          const Text('No sales data for courses yet.', style: TextStyle(color: Colors.grey)),
+        ...courses.map((c) {
+          return _buildPerformanceCard(
+            title: c['title'] ?? 'Unknown Course',
+            students: '${c['totalStudents'] ?? 0} Students',
+            revenue: 'Rp ${c['totalRevenue'] ?? 0}',
+            tag: 'Top',
+            tagColor: const Color(0xFF7A5CFF),
+          );
+        }),
       ],
     );
   }
@@ -410,7 +444,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   Widget _buildPerformanceCard({
     required String title,
     required String students,
-    required double rating,
+    required String revenue,
     required String tag,
     required Color tagColor,
   }) {
@@ -447,6 +481,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
               children: [
                 Text(
                   title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -455,28 +491,13 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '$students • $rating ★',
+                  '$students • $revenue',
                   style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFF9C9AA5),
                   ),
                 ),
               ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: tagColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              tag,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: tagColor,
-              ),
             ),
           ),
         ],
@@ -488,9 +509,13 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 // ─── Chart Painters ─────────────────────────────────────────────────────────
 
 class _LineChartPainter extends CustomPainter {
+  final List<double> points;
+
+  _LineChartPainter({required this.points});
+
   @override
   void paint(Canvas canvas, Size size) {
-    final points = [0.3, 0.5, 0.4, 0.7, 0.6, 0.85, 0.75];
+    if (points.isEmpty) return;
     final path = Path();
     final gradientPath = Path();
     final paint = Paint()
@@ -557,9 +582,13 @@ class _LineChartPainter extends CustomPainter {
 }
 
 class _BarChartPainter extends CustomPainter {
+  final List<double> values;
+
+  _BarChartPainter({required this.values});
+
   @override
   void paint(Canvas canvas, Size size) {
-    final values = [0.4, 0.5, 0.8, 0.6, 0.7];
+    if (values.isEmpty) return;
     final barWidth = size.width / (values.length * 2.5);
     final gap = (size.width - barWidth * values.length) / (values.length + 1);
 

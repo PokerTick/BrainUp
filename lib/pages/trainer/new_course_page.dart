@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../ui/bottomnavigation.dart';
+import '../../services/trainer_api_service.dart';
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
@@ -486,17 +487,47 @@ class _NewCoursePageState extends State<NewCoursePage> {
       width: double.infinity,
       height: 54,
       child: ElevatedButton(
-        onPressed: () {
-          // TODO: Implement course creation
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Course creation coming soon!'),
-              backgroundColor: const Color(0xFF7A5CFF),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-          );
+        onPressed: () async {
+          if (_titleController.text.isEmpty || _priceController.text.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Please fill in title and price')),
+            );
+            return;
+          }
+
+          final price = int.tryParse(_priceController.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+          
+          final courseData = {
+            "title": _titleController.text,
+            "description": _descriptionController.text,
+            "price": price,
+            "isFree": price == 0,
+            "previewYoutubeUrl": "",
+            "categoryId": 1, // Defaulting to 1 as per API doc
+            "status": "DRAFT"
+          };
+
+          final result = await TrainerApiService.createCourse(courseData);
+          if (result != null && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Course created successfully!'),
+                backgroundColor: const Color(0xFF4CAF50),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            );
+            Navigator.pop(context);
+          } else if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Failed to create course.'),
+                backgroundColor: Colors.red,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            );
+          }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF7A5CFF),
