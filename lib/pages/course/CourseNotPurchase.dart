@@ -1,8 +1,10 @@
 import 'package:brainup/pages/course/CoursePurchase.dart';
+import 'package:brainup/pages/payment/payment_page.dart';
 import 'package:brainup/services/api_service.dart';
 import 'package:brainup/ui/bottomnavigation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
 class Coursenotpurchase extends StatefulWidget {
   final int courseId;
@@ -34,22 +36,353 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
     }
   }
 
+  Future<String?> _showVoucherSelectionSheet() async {
+    final textController = TextEditingController();
+    List<Map<String, dynamic>> vouchers = [];
+    bool loadingVouchers = true;
+
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            if (loadingVouchers) {
+              ApiService.getVouchers().then((list) {
+                if (context.mounted) {
+                  setSheetState(() {
+                    vouchers = list.where((v) => v['isUsed'] != true).toList();
+                    loadingVouchers = false;
+                  });
+                }
+              }).catchError((_) {
+                if (context.mounted) {
+                  setSheetState(() {
+                    loadingVouchers = false;
+                  });
+                }
+              });
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                ),
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Pilih Voucher Belajar',
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1A1A2E),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: textController,
+                            decoration: InputDecoration(
+                              hintText: 'Masukkan kode voucher (e.g. PROMO10)',
+                              hintStyle: GoogleFonts.poppins(fontSize: 13, color: Colors.grey),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: () {
+                            final code = textController.text.trim();
+                            if (code.isNotEmpty) {
+                              Navigator.pop(context, code);
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF6B58E6),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Gunakan',
+                            style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Voucher Tersedia',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1A1A2E),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    if (loadingVouchers)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: CircularProgressIndicator(color: Color(0xFF6B58E6)),
+                        ),
+                      )
+                    else if (vouchers.isEmpty)
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Text(
+                            'Tidak ada voucher tersedia.',
+                            style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey),
+                          ),
+                        ),
+                      )
+                    else
+                      Container(
+                        constraints: const BoxConstraints(maxHeight: 250),
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: vouchers.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 10),
+                          itemBuilder: (context, index) {
+                            final v = vouchers[index];
+                            final title = v['title'] as String? ?? 'Diskon Belajar';
+                            final code = v['code'] as String? ?? 'CODE';
+                            final discount = v['discount']?.toString() ?? '';
+                            final expiryStr = v['expiryDate'] as String?;
+                            final expiry = expiryStr != null ? DateTime.tryParse(expiryStr) : null;
+                            final expiryFormatted = expiry != null 
+                                ? 'Berlaku s/d ${DateFormat('dd MMM yyyy').format(expiry)}'
+                                : 'Tanpa batas waktu';
+
+                            return Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(color: const Color(0xFF6B58E6).withValues(alpha: 0.15)),
+                                borderRadius: BorderRadius.circular(16),
+                                color: const Color(0xFF6B58E6).withValues(alpha: 0.03),
+                              ),
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 42,
+                                    height: 42,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEDE7FB),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.local_activity_outlined,
+                                      color: Color(0xFF6B58E6),
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          title,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: const Color(0xFF1A1A2E),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          expiryFormatted,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 11,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      if (discount.isNotEmpty)
+                                        Text(
+                                          discount.contains('%') || discount.contains('Rp') 
+                                              ? discount 
+                                              : 'Rp $discount',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFFE84D8A),
+                                          ),
+                                        ),
+                                      const SizedBox(height: 6),
+                                      ElevatedButton(
+                                        onPressed: () => Navigator.pop(context, code),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF6B58E6),
+                                          foregroundColor: Colors.white,
+                                          elevation: 0,
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'Pilih',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context, ""),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFF6B58E6)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Lanjutkan Tanpa Voucher',
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFF6B58E6),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _enrollCourse() async {
+    debugPrint('courseData: $courseData');
     setState(() => isEnrolling = true);
-    final success = await ApiService.enrollInCourse(widget.courseId);
-    if (mounted) {
+
+    final isFree = courseData?['isFree'] == true;
+    final price = courseData?['price'];
+    final priceNum = price != null ? (price as num).toDouble() : 0.0;
+    debugPrint('isFree: $isFree, price: $price, priceNum: $priceNum');
+
+    if (isFree || priceNum == 0) {
+      final success = await ApiService.enrollInCourse(widget.courseId);
+      if (mounted) {
+        setState(() => isEnrolling = false);
+        if (success) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => Coursepurchase(courseId: widget.courseId),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to enroll in the course. Please try again.')),
+          );
+        }
+      }
+    } else {
       setState(() => isEnrolling = false);
-      if (success) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Coursepurchase(courseId: widget.courseId),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to enroll in the course. Please try again.')),
-        );
+      final String? selectedCouponCode = await _showVoucherSelectionSheet();
+      if (selectedCouponCode == null) {
+        return; // User cancelled
+      }
+
+      setState(() => isEnrolling = true);
+      final couponCode = selectedCouponCode.isEmpty ? null : selectedCouponCode;
+
+      final result = await ApiService.createOrder(
+        courseIds: [widget.courseId],
+        couponCode: couponCode,
+      );
+      if (mounted) {
+        setState(() => isEnrolling = false);
+        if (result['error'] == true) {
+          if (result['statusCode'] == 409) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Coursepurchase(courseId: widget.courseId),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(result['message'] ?? 'Failed to create order.')),
+            );
+          }
+        } else {
+          final orderId = result['id'] as int;
+          final snapRedirectUrl = result['snapRedirectUrl'] as String;
+          final rawItems = result['items'] as List? ?? [];
+          final orderItems = rawItems.cast<Map<String, dynamic>>();
+          final total = (result['total'] as num).toDouble();
+          final discountAmt = ((result['discountAmt'] ?? 0) as num).toDouble();
+          final serviceFee = ((result['serviceFee'] ?? 0) as num).toDouble();
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PaymentPage(
+                orderId: orderId,
+                snapRedirectUrl: snapRedirectUrl,
+                orderItems: orderItems,
+                total: total,
+                discountAmt: discountAmt,
+                serviceFee: serviceFee,
+              ),
+            ),
+          );
+        }
       }
     }
   }
