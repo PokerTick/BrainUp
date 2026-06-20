@@ -58,6 +58,8 @@ class _SpinwheelDialogState extends State<SpinwheelDialog>
   // The angle the wheel rests at after spinning (determines which segment is shown)
   double _currentAngle = 0.0;
 
+  int? _currentXp;
+
   @override
   void initState() {
     super.initState();
@@ -65,6 +67,16 @@ class _SpinwheelDialogState extends State<SpinwheelDialog>
       vsync: this,
       duration: const Duration(milliseconds: 4000),
     );
+    _loadXp();
+  }
+
+  Future<void> _loadXp() async {
+    final data = await ApiService.getGamificationDashboard();
+    if (mounted && data != null) {
+      setState(() {
+        _currentXp = data['xp'] as int?;
+      });
+    }
   }
 
   @override
@@ -161,6 +173,7 @@ class _SpinwheelDialogState extends State<SpinwheelDialog>
         _spinResult = apiResult;
         _errorMsg = errorMsg;
       });
+      _loadXp(); // Refresh XP after spin
     }
   }
 
@@ -226,6 +239,22 @@ class _SpinwheelDialogState extends State<SpinwheelDialog>
               style: GoogleFonts.poppins(
                 fontSize: 12,
                 color: Colors.white.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                _currentXp != null ? 'Your EXP: $_currentXp' : 'Loading EXP...',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFFF59E0B),
+                ),
               ),
             ),
             const SizedBox(height: 14),

@@ -12,6 +12,7 @@ import 'purchase_history_page.dart';
 import 'voucher_list_page.dart';
 import 'notification_setting_page.dart';
 import 'privacy_security_page.dart';
+import '../../ui/spinwheel_dialog.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -355,6 +356,16 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           const SizedBox(height: 12),
+          _SettingsTile(
+            icon: Icons.sports_esports,
+            title: 'Spin Wheel',
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (_) => const SpinwheelDialog(),
+              );
+            },
+          ),
           _SettingsTile(
             icon: Icons.card_giftcard_outlined,
             title: 'Voucher List',
