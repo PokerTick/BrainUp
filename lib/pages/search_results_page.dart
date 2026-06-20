@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:brainup/ui/bottomnavigation.dart';
 import '../services/api_service.dart';
 import 'search_page.dart';
+import 'course/CourseNotPurchase.dart';
 
 /// Standalone search results page.
 /// Receives the search query and a list of course results from the caller.
@@ -456,7 +457,12 @@ class CourseResultCard extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            // TODO: Navigate to course detail
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Coursenotpurchase(courseId: course['id']),
+              ),
+            );
           },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
