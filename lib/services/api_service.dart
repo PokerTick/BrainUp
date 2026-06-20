@@ -422,16 +422,86 @@ class ApiService {
   static Future<bool> enrollInCourse(int courseId) async {
     try {
       final headers = await _authHeaders();
+      final url = '$baseUrl/courses/$courseId/enroll';
+      debugPrint('Enrolling in course: $url');
       final response = await http
           .post(
-            Uri.parse('$baseUrl/courses/$courseId/enroll'),
+            Uri.parse(url),
             headers: headers,
           )
           .timeout(const Duration(seconds: 10));
 
+      debugPrint('Enroll status: ${response.statusCode}');
+      debugPrint('Enroll body: ${response.body}');
       return response.statusCode == 200 || response.statusCode == 201;
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Enroll error: $e');
+    }
     return false;
+  }
+
+  // ─── Orders / Payment ─────────────────────────────────────────────────────
+
+  /// POST /orders  (requires auth)
+  /// Creates a new order and returns Midtrans Snap token.
+  /// [courseIds] — list of course IDs to purchase (1 or more).
+  /// [couponCode] — optional coupon code for discount.
+  /// Returns the full order data on success, or a map with [error: true] on failure.
+  static Future<Map<String, dynamic>> createOrder({
+    required List<int> courseIds,
+    String? couponCode,
+  }) async {
+    try {
+      final headers = await _authHeaders();
+      final body = <String, dynamic>{'courseIds': courseIds};
+      if (couponCode != null && couponCode.isNotEmpty) {
+        body['couponCode'] = couponCode;
+      }
+
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/orders'),
+            headers: headers,
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final responseBody = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return (responseBody['data'] as Map<String, dynamic>?) ?? {};
+      }
+
+      // Return error details so caller can handle specific cases
+      return {
+        'error': true,
+        'statusCode': response.statusCode,
+        'message': responseBody['message'] ?? 'Order creation failed',
+      };
+    } catch (e) {
+      return {'error': true, 'statusCode': 0, 'message': 'Network error: $e'};
+    }
+  }
+
+  /// GET /orders/:orderId/payment-status  (requires auth)
+  /// Polls the payment status of a specific order.
+  /// Returns order data including [status] and [items] on success, null otherwise.
+  static Future<Map<String, dynamic>?> getOrderPaymentStatus(int orderId) async {
+    try {
+      final headers = await _authHeaders();
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/orders/$orderId/payment-status'),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        return data['data'] as Map<String, dynamic>?;
+      }
+    } catch (_) {}
+    return null;
   }
 
   // ─── User Specific Data ───────────────────────────────────────────────────
