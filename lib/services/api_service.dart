@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -392,10 +391,6 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        try {
-          File('gamification_log.txt').writeAsStringSync(response.body);
-        } catch (_) {}
-        debugPrint('GAMIFICATION API RESPONSE: ${response.body}');
         return data['data'] as Map<String, dynamic>?;
       }
     } catch (_) {}

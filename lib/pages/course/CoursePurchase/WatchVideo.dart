@@ -13,7 +13,7 @@ class WatchVideo extends StatefulWidget {
 class _WatchVideoState extends State<WatchVideo> {
   int _currentLessonIndex = 0;
 
-  static const _lessons = [
+  final List<_LessonData> _lessons = [
     _LessonData(
       title: 'Part 1: Learning the basics',
       duration: '10:32',
@@ -30,6 +30,17 @@ class _WatchVideoState extends State<WatchVideo> {
       progress: 0.0,
     ),
   ];
+
+  void _toggleLessonComplete(int index) {
+    setState(() {
+      final lesson = _lessons[index];
+      _lessons[index] = _LessonData(
+        title: lesson.title,
+        duration: lesson.duration,
+        progress: lesson.progress >= 1.0 ? 0.0 : 1.0,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +75,7 @@ class _WatchVideoState extends State<WatchVideo> {
                       const SizedBox(height: 16),
 
                       // Active lesson info row
-                      _buildLessonInfoRow(_lessons[_currentLessonIndex]),
+                      _buildLessonInfoRow(_lessons[_currentLessonIndex], lessonIndex: _currentLessonIndex),
                       const SizedBox(height: 24),
 
                       // Remaining lessons
@@ -271,7 +282,8 @@ class _WatchVideoState extends State<WatchVideo> {
   }
 
   /// Lesson info row (title + duration + progress ring)
-  Widget _buildLessonInfoRow(_LessonData lesson) {
+  Widget _buildLessonInfoRow(_LessonData lesson, {int? lessonIndex}) {
+    final isComplete = lesson.progress >= 1.0;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
@@ -305,31 +317,24 @@ class _WatchVideoState extends State<WatchVideo> {
               ],
             ),
           ),
-          // Progress ring
-          SizedBox(
-            width: 36,
-            height: 36,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CircularProgressIndicator(
-                  value: lesson.progress,
-                  strokeWidth: 3,
-                  backgroundColor: Colors.grey.shade200,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFF6B58E6),
-                  ),
+          // Tappable progress ring / checkmark
+          GestureDetector(
+            onTap: lessonIndex != null ? () => _toggleLessonComplete(lessonIndex) : null,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isComplete ? const Color(0xFF6B58E6) : Colors.transparent,
+                border: Border.all(
+                  color: isComplete ? const Color(0xFF6B58E6) : Colors.grey.shade300,
+                  width: isComplete ? 0 : 2.5,
                 ),
-                if (lesson.progress > 0)
-                  Text(
-                    '${(lesson.progress * 100).toInt()}%',
-                    style: GoogleFonts.poppins(
-                      fontSize: 8,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF6B58E6),
-                    ),
-                  ),
-              ],
+              ),
+              child: isComplete
+                  ? const Icon(Icons.check_rounded, color: Colors.white, size: 22)
+                  : null,
             ),
           ),
         ],
