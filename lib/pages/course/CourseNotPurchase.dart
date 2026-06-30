@@ -19,6 +19,7 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
   Map<String, dynamic>? courseData;
   bool isLoading = true;
   bool isEnrolling = false;
+  Map<String, dynamic>? selectedVoucher;
 
   @override
   void initState() {
@@ -36,12 +37,12 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
     }
   }
 
-  Future<String?> _showVoucherSelectionSheet() async {
+  Future<Map<String, dynamic>?> _showVoucherSelectionSheet() async {
     final textController = TextEditingController();
     List<Map<String, dynamic>> vouchers = [];
     bool loadingVouchers = true;
 
-    return showModalBottomSheet<String>(
+    return showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -49,10 +50,38 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             if (loadingVouchers) {
-              ApiService.getVouchers().then((list) {
+              Future.wait([
+                ApiService.getVouchers(),
+                ApiService.getGamificationDashboard(),
+              ]).then((results) {
                 if (context.mounted) {
+                  final list = results[0] as List<Map<String, dynamic>>;
+                  final gamificationData = results[1] as Map<String, dynamic>?;
+                  
+                  final List<Map<String, dynamic>> unusedCoupons = 
+                      (gamificationData?['unusedCoupons'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+                      
+                  final combinedData = [...list, ...unusedCoupons];
+                  
+                  final parsedVouchers = combinedData.map((v) {
+                    final isUsed = v['isUsed'] as bool? ?? v['status'] == 'USED' ?? false;
+                    final discountStrForCode = v['discountPct']?.toString() ?? 'G';
+                    final code = v['code'] as String? ?? v['couponCode'] as String? ?? 'GIFT-$discountStrForCode';
+                    final discount = v['discount']?.toString() ?? (v['discountPct'] != null ? '${v['discountPct']}%' : 'Discount');
+                    final title = v['title'] as String? ?? (v['discountPct'] != null ? '${v['discountPct']}% Discount Coupon' : 'Voucher');
+                    final expiryDate = v['expiryDate'] as String? ?? v['expiresAt'] as String? ?? v['validUntil'] as String?;
+                    
+                    return {
+                      'isUsed': isUsed,
+                      'code': code,
+                      'discount': discount,
+                      'title': title,
+                      'expiryDate': expiryDate,
+                    };
+                  }).where((v) => v['isUsed'] != true).toList();
+
                   setSheetState(() {
-                    vouchers = list.where((v) => v['isUsed'] != true).toList();
+                    vouchers = parsedVouchers;
                     loadingVouchers = false;
                   });
                 }
@@ -121,7 +150,11 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
                           onPressed: () {
                             final code = textController.text.trim();
                             if (code.isNotEmpty) {
-                              Navigator.pop(context, code);
+                              final match = vouchers.firstWhere(
+                                (v) => v['code'] == code, 
+                                orElse: () => <String, dynamic>{'code': code, 'discount': '0'}
+                              );
+                              Navigator.pop(context, match);
                             }
                           },
                           style: ElevatedButton.styleFrom(
@@ -247,7 +280,7 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
                                         ),
                                       const SizedBox(height: 6),
                                       ElevatedButton(
-                                        onPressed: () => Navigator.pop(context, code),
+                                        onPressed: () => Navigator.pop(context, v),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: const Color(0xFF6B58E6),
                                           foregroundColor: Colors.white,
@@ -332,18 +365,26 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
         }
       }
     } else {
-      setState(() => isEnrolling = false);
-      final String? selectedCouponCode = await _showVoucherSelectionSheet();
-      if (selectedCouponCode == null) {
-        return; // User cancelled
-      }
-
       setState(() => isEnrolling = true);
-      final couponCode = selectedCouponCode.isEmpty ? null : selectedCouponCode;
+      final couponCode = selectedVoucher?['code'] as String?;
+      
+      double discountAmt = 0;
+      final price = courseData?['price'];
+      if (price != null && selectedVoucher != null) {
+        final priceNum = (price as num).toDouble();
+        final discountStr = selectedVoucher!['discount']?.toString() ?? '0';
+        if (discountStr.contains('%')) {
+          final pct = double.tryParse(discountStr.replaceAll('%', '')) ?? 0;
+          discountAmt = priceNum * (pct / 100);
+        } else {
+          discountAmt = double.tryParse(discountStr.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+        }
+      }
 
       final result = await ApiService.createOrder(
         courseIds: [widget.courseId],
         couponCode: couponCode,
+        discountAmt: discountAmt > 0 ? discountAmt : null,
       );
       if (mounted) {
         setState(() => isEnrolling = false);
@@ -365,9 +406,16 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
           final snapRedirectUrl = result['snapRedirectUrl'] as String;
           final rawItems = result['items'] as List? ?? [];
           final orderItems = rawItems.cast<Map<String, dynamic>>();
-          final total = (result['total'] as num).toDouble();
-          final discountAmt = ((result['discountAmt'] ?? 0) as num).toDouble();
+          
+          double total = (result['total'] as num).toDouble();
+          double discountAmtFromApi = ((result['discountAmt'] ?? 0) as num).toDouble();
           final serviceFee = ((result['serviceFee'] ?? 0) as num).toDouble();
+
+          if (discountAmt > 0 && discountAmtFromApi == 0) {
+            discountAmtFromApi = discountAmt;
+            total = total - discountAmt;
+            if (total < 0) total = 0;
+          }
 
           Navigator.push(
             context,
@@ -377,7 +425,7 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
                 snapRedirectUrl: snapRedirectUrl,
                 orderItems: orderItems,
                 total: total,
-                discountAmt: discountAmt,
+                discountAmt: discountAmtFromApi,
                 serviceFee: serviceFee,
               ),
             ),
@@ -636,48 +684,122 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
     );
   }
 
-  /// Total price label + Buy Course button
   Widget _buildPriceSection() {
     final price = courseData?['price'];
     final isFree = courseData?['isFree'] == true;
     
-    String priceDisplay = 'Free';
+    String originalPriceDisplay = '';
+    String finalPriceDisplay = 'Free';
+    
     if (!isFree && price != null) {
-      final priceNum = (price as num).toDouble();
+      double priceNum = (price as num).toDouble();
+      originalPriceDisplay = 'Rp${priceNum.toStringAsFixed(0)}';
+      
+      if (selectedVoucher != null) {
+        final discountStr = selectedVoucher!['discount']?.toString() ?? '0';
+        if (discountStr.contains('%')) {
+          final pct = double.tryParse(discountStr.replaceAll('%', '')) ?? 0;
+          priceNum = priceNum - (priceNum * (pct / 100));
+        } else {
+          final amt = double.tryParse(discountStr.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+          priceNum = priceNum - amt;
+        }
+        if (priceNum < 0) priceNum = 0;
+      }
+      
       if (priceNum > 0) {
-        priceDisplay = 'Rp${priceNum.toStringAsFixed(0)}';
+        finalPriceDisplay = 'Rp${priceNum.toStringAsFixed(0)}';
+      } else {
+        finalPriceDisplay = 'Free';
       }
     }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Price column
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        // Voucher Section
+        if (!isFree) ...[
+          GestureDetector(
+            onTap: () async {
+              final result = await _showVoucherSelectionSheet();
+              if (result != null) {
+                setState(() => selectedVoucher = result);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6B58E6).withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF6B58E6).withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.local_activity_outlined, color: Color(0xFF6B58E6), size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      selectedVoucher != null 
+                          ? 'Voucher Applied: ${selectedVoucher!['code']}' 
+                          : 'Makin hemat pakai voucher!',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: selectedVoucher != null ? const Color(0xFF1A1A2E) : const Color(0xFF6B58E6),
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    selectedVoucher != null ? Icons.check_circle : Icons.chevron_right,
+                    color: const Color(0xFF6B58E6),
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+        // Price & Buy Button
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              'Total Price',
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFF8A8A9A),
-              ),
+            // Price column
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Total Price',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF8A8A9A),
+                  ),
+                ),
+                if (selectedVoucher != null && originalPriceDisplay.isNotEmpty)
+                  Text(
+                    originalPriceDisplay,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade500,
+                      decoration: TextDecoration.lineThrough,
+                    ),
+                  ),
+                const SizedBox(height: 2),
+                Text(
+                  finalPriceDisplay,
+                  style: GoogleFonts.poppins(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1A1A2E),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 2),
-            Text(
-              priceDisplay,
-              style: GoogleFonts.poppins(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF1A1A2E),
-              ),
-            ),
-          ],
-        ),
-        const Spacer(),
-        // Buy Course button
-        ElevatedButton(
+            const Spacer(),
+            // Buy Course button
+            ElevatedButton(
           onPressed: isEnrolling ? null : _enrollCourse,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF6B58E6),
@@ -702,6 +824,8 @@ class _CoursenotpurchaseState extends State<Coursenotpurchase> {
                 fontWeight: FontWeight.w600,
               ),
             ),
+        ),
+          ],
         ),
       ],
     );

@@ -101,6 +101,23 @@ class TrainerApiService {
     return null;
   }
 
+  // 5.5 Get Course Sections
+  static Future<List<dynamic>?> getCourseSections(int courseId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/courses/$courseId/sections'),
+        headers: await _getHeaders(),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['data'] as List<dynamic>?;
+      }
+    } catch (e) {
+      print('Error fetching course sections: $e');
+    }
+    return null;
+  }
+
   // 6. Update Section
   static Future<Map<String, dynamic>?> updateSection(int sectionId, Map<String, dynamic> sectionData) async {
     try {
@@ -199,5 +216,30 @@ class TrainerApiService {
       print('Error fetching trainer messages: $e');
     }
     return [];
+  }
+
+  // 12. Upload Course Thumbnail
+  static Future<bool> uploadCourseThumbnail(int courseId, String filePath) async {
+    try {
+      final token = await ApiService.getAccessToken();
+      final uri = Uri.parse('$baseUrl/courses/$courseId/thumbnail');
+      final request = http.MultipartRequest('PATCH', uri);
+      
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+      
+      // Use 'thumbnail' or 'file' depending on what the backend expects, usually 'file' or 'thumbnail'
+      // the error message mentioned `file` for user avatar, let's assume 'file' or 'thumbnail'.
+      // If we use 'file', let's stick to standard. Let's use 'file'. Actually `updateUserAvatar` uses `file`.
+      // Let's use 'file' just in case. Wait, many systems use 'file'. Let's check updateUserAvatar: it uses 'file'.
+      request.files.add(await http.MultipartFile.fromPath('thumbnail', filePath));
+      
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 20));
+      return streamedResponse.statusCode == 200 || streamedResponse.statusCode == 201;
+    } catch (e) {
+      print('Error uploading thumbnail: $e');
+      return false;
+    }
   }
 }

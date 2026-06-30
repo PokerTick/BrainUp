@@ -273,10 +273,13 @@ class _TrainerDashboardState extends State<TrainerDashboard> {
                       child: _buildQuickActionButton(
                         icon: Icons.add_circle_outline_rounded,
                         title: 'New\nCourse',
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const NewCoursePage()),
-                        ),
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const NewCoursePage()),
+                          );
+                          _loadDashboardData();
+                        },
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -390,12 +393,24 @@ class _TrainerDashboardState extends State<TrainerDashboard> {
     required double progress,
   }) {
     final isLive = status == 'Live';
+    
+    // Safely parse thumbnail URL
+    String rawThumb = course['thumbnailUrl']?.toString() ?? course['thumbnail']?.toString() ?? '';
+    if (rawThumb.startsWith('/')) {
+      // If it's a relative path, prepend the base API domain
+      // e.g. change http://localhost:3000/api -> http://localhost:3000
+      final domain = ApiService.baseUrl.replaceAll(RegExp(r'/api$'), '');
+      rawThumb = '$domain$rawThumb';
+    }
+    final hasThumb = rawThumb.isNotEmpty;
+
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => ManageCoursePage(course: course)),
         );
+        _loadDashboardData();
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -414,14 +429,23 @@ class _TrainerDashboardState extends State<TrainerDashboard> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Thumbnail placeholder
+          // Thumbnail
           Container(
             width: 48,
             height: 48,
             decoration: BoxDecoration(
               color: const Color(0xFFEDE9FF),
               borderRadius: BorderRadius.circular(12),
+              image: hasThumb
+                  ? DecorationImage(
+                      image: NetworkImage(rawThumb),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
             ),
+            child: !hasThumb
+                ? const Icon(Icons.image_outlined, color: Color(0xFF7A5CFF), size: 24)
+                : null,
           ),
           const SizedBox(width: 16),
           // Info

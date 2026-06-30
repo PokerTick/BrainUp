@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../ui/bottomnavigation.dart';
 import '../../services/trainer_api_service.dart';
 
@@ -16,6 +18,8 @@ class _NewCoursePageState extends State<NewCoursePage> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
+  File? _selectedImage;
+  bool _isLoading = false;
   String _selectedCategory = 'Design';
   final List<String> _curriculumItems = [
     'Introduction to Design Systems',
@@ -36,6 +40,24 @@ class _NewCoursePageState extends State<NewCoursePage> {
     _descriptionController.dispose();
     _priceController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        setState(() {
+          _selectedImage = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick image: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -204,9 +226,8 @@ class _NewCoursePageState extends State<NewCoursePage> {
 
   Widget _buildImageUpload() {
     return GestureDetector(
-      onTap: () {
-        // TODO: Implement image picker
-      },
+      onTap: _pickImage,
+      behavior: HitTestBehavior.opaque,
       child: Container(
         height: 140,
         width: double.infinity,
@@ -218,6 +239,12 @@ class _NewCoursePageState extends State<NewCoursePage> {
             width: 1.5,
             style: BorderStyle.solid,
           ),
+          image: _selectedImage != null
+              ? DecorationImage(
+                  image: FileImage(_selectedImage!),
+                  fit: BoxFit.cover,
+                )
+              : null,
           boxShadow: [
             BoxShadow(
               color: const Color(0xFF7A5CFF).withValues(alpha: 0.04),
@@ -226,37 +253,47 @@ class _NewCoursePageState extends State<NewCoursePage> {
             ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F2FF),
-                borderRadius: BorderRadius.circular(12),
+        child: _selectedImage != null
+            ? Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Center(
+                  child: Icon(Icons.edit, color: Colors.white, size: 32),
+                ),
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F2FF),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.cloud_upload_outlined,
+                        color: Color(0xFF7A5CFF), size: 28),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Upload Course Image',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF7A5CFF),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'PNG, JPG up to 5MB',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF9C9AA5),
+                    ),
+                  ),
+                ],
               ),
-              child: const Icon(Icons.cloud_upload_outlined,
-                  color: Color(0xFF7A5CFF), size: 28),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'Upload Course Image',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF7A5CFF),
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'PNG, JPG up to 5MB',
-              style: TextStyle(
-                fontSize: 11,
-                color: Color(0xFF9C9AA5),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -487,13 +524,15 @@ class _NewCoursePageState extends State<NewCoursePage> {
       width: double.infinity,
       height: 54,
       child: ElevatedButton(
-        onPressed: () async {
+        onPressed: _isLoading ? null : () async {
           if (_titleController.text.isEmpty || _priceController.text.isEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Please fill in title and price')),
             );
             return;
           }
+
+          setState(() => _isLoading = true);
 
           final price = int.tryParse(_priceController.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
           
@@ -508,25 +547,37 @@ class _NewCoursePageState extends State<NewCoursePage> {
           };
 
           final result = await TrainerApiService.createCourse(courseData);
-          if (result != null && mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Course created successfully!'),
-                backgroundColor: const Color(0xFF4CAF50),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            );
-            Navigator.pop(context);
-          } else if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Failed to create course.'),
-                backgroundColor: Colors.red,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            );
+          if (result != null) {
+            if (_selectedImage != null) {
+              final courseId = result['id'];
+              if (courseId != null) {
+                await TrainerApiService.uploadCourseThumbnail(courseId, _selectedImage!.path);
+              }
+            }
+            if (mounted) {
+              setState(() => _isLoading = false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Course created successfully!'),
+                  backgroundColor: const Color(0xFF4CAF50),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              );
+              Navigator.pop(context);
+            }
+          } else {
+            if (mounted) {
+              setState(() => _isLoading = false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Failed to create course.'),
+                  backgroundColor: Colors.red,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              );
+            }
           }
         },
         style: ElevatedButton.styleFrom(
@@ -537,20 +588,26 @@ class _NewCoursePageState extends State<NewCoursePage> {
             borderRadius: BorderRadius.circular(16),
           ),
         ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.play_arrow_rounded, size: 22),
-            SizedBox(width: 8),
-            Text(
-              'Create Course',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+        child: _isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+              )
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.play_arrow_rounded, size: 22),
+                  SizedBox(width: 8),
+                  Text(
+                    'Create Course',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }

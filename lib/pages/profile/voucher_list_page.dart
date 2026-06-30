@@ -43,22 +43,59 @@ class _VoucherListPageState extends State<VoucherListPage> {
 
   Future<void> _loadVouchers() async {
     final data = await ApiService.getVouchers();
+    final gamificationData = await ApiService.getGamificationDashboard();
+    
+    final List<Map<String, dynamic>> unusedCoupons = 
+        (gamificationData?['unusedCoupons'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+        
+    final combinedData = [...data, ...unusedCoupons];
+
     if (mounted) {
       setState(() {
-        _vouchers = data.map((v) {
-          final dateStr = v['expiryDate'] as String?;
+        final parsedVouchers = combinedData.map((v) {
+          final dateStr = v['expiryDate'] as String? ?? v['expiresAt'] as String? ?? v['validUntil'] as String?;
           final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
           final formattedDate = date != null ? 'Valid until ${DateFormat('dd MMM yyyy').format(date)}' : 'No Expiry';
           
+          final discountVal = v['discount']?.toString() ?? 
+                              (v['discountPct'] != null ? '${v['discountPct']}%' : 'Discount');
+
+          final titleVal = v['title'] as String? ?? 
+                           (v['discountPct'] != null ? '${v['discountPct']}% Discount Coupon' : 'Voucher');
+                           
+          final discountStrForCode = v['discountPct']?.toString() ?? 'G';
+          final codeVal = v['code'] as String? ?? v['couponCode'] as String? ?? 'GIFT-$discountStrForCode';
+
           return Voucher(
             id: v['id'] as int? ?? 0,
-            title: v['title'] as String? ?? 'Voucher',
-            code: v['code'] as String? ?? 'CODE',
-            discount: v['discount']?.toString() ?? 'Discount',
+            title: titleVal,
+            code: codeVal,
+            discount: discountVal,
             expiryDate: formattedDate,
-            isUsed: v['isUsed'] as bool? ?? false,
+            isUsed: v['isUsed'] as bool? ?? v['status'] == 'USED' ?? false,
           );
         }).toList();
+        
+        // Filter out used vouchers as requested
+        final activeVouchers = parsedVouchers.where((v) => !v.isUsed).toList();
+        
+        // Deduplicate only by valid IDs to prevent overwriting gamification coupons
+        final uniqueVouchers = <int, Voucher>{};
+        final finalVouchers = <Voucher>[];
+        
+        for (var v in activeVouchers) {
+          if (v.id != 0) {
+            if (!uniqueVouchers.containsKey(v.id)) {
+              uniqueVouchers[v.id] = v;
+              finalVouchers.add(v);
+            }
+          } else {
+            // Keep all gamification coupons that lack a backend ID
+            finalVouchers.add(v);
+          }
+        }
+        
+        _vouchers = finalVouchers;
         _isLoading = false;
       });
     }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -391,6 +392,10 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        try {
+          File('gamification_log.txt').writeAsStringSync(response.body);
+        } catch (_) {}
+        debugPrint('GAMIFICATION API RESPONSE: ${response.body}');
         return data['data'] as Map<String, dynamic>?;
       }
     } catch (_) {}
@@ -450,12 +455,17 @@ class ApiService {
   static Future<Map<String, dynamic>> createOrder({
     required List<int> courseIds,
     String? couponCode,
+    double? discountAmt,
   }) async {
     try {
       final headers = await _authHeaders();
       final body = <String, dynamic>{'courseIds': courseIds};
       if (couponCode != null && couponCode.isNotEmpty) {
         body['couponCode'] = couponCode;
+      }
+      if (discountAmt != null && discountAmt > 0) {
+        body['discountAmt'] = discountAmt;
+        body['discount'] = discountAmt; 
       }
 
       final response = await http
